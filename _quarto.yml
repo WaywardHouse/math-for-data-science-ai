@@ -1,0 +1,28 @@
+project:
+  type: book
+  output-dir: _site
+
+book:
+  title: "Wayward House Mathematics for Data Science and AI"
+  subtitle: "A follow-on book built on the Grade 7 to university mathematics path"
+  date: last-modified
+  search: true
+  chapters:
+    - index.qmd
+    - prerequisites.qmd
+    - 01-mathematical-modelling.qmd
+    - 02-statistical-learning.qmd
+    - 03-optimisation-for-ml.qmd
+    - 04-linear-algebra-representations.qmd
+    - 05-probability-bayesian-uncertainty.qmd
+    - 06-signals-sequences-state-estimation.qmd
+    - 07-information-theory-objectives.qmd
+    - 08-neural-networks-deep-learning.qmd
+    - roadmap.qmd
+
+format:
+  html:
+    theme: flatly
+    toc: true
+    number-sections: true
+    code-fold: true

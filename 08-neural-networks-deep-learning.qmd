@@ -1,0 +1,200 @@
+---
+title: "Neural Networks and Deep Learning Mathematics"
+status: "draft"
+---
+
+Deep learning is often introduced as a catalogue of architectures. That makes the
+field look more mysterious than it is. Beneath the naming and engineering
+detail, the central mathematics is surprisingly coherent: composition of
+functions, affine maps, nonlinear transformations, gradient-based optimisation,
+and learned internal representations.
+
+This chapter therefore treats neural networks not as magic machinery but as a
+systematic extension of ideas already developed in the book.
+
+## Prerequisite anchors
+
+The strongest backward links are:
+
+- `vol-03/04-functions-relations.qmd`
+- `vol-05/02-differential-calculus.qmd`
+- `vol-07/linear-algebra/01-matrices-systems.qmd`
+- `vol-07/numerics/01-numerical-methods.qmd`
+- `vol-08/07-nonlinear-optimisation.qmd`
+
+## Networks as composed functions
+
+At the most basic level, a neural network is a composition of functions.
+
+One layer takes an input vector, applies an affine transformation, then passes
+the result through a nonlinearity. Another layer takes that output and repeats
+the process. Written schematically,
+
+$$
+x \mapsto f_3(f_2(f_1(x))).
+$$
+
+This is not conceptually foreign. Composition has been present since the earlier
+volumes of *Wayward House Mathematics*. Deep learning becomes easier to read once
+we refuse to let the notation hide that continuity.
+
+## Affine maps and nonlinear activations
+
+An affine map has the form
+
+$$
+z = Wx + b,
+$$
+
+where $W$ is a matrix and $b$ is a bias vector. On its own, this is still a
+linear-algebraic transformation plus translation. The essential new ingredient is
+the activation function, which introduces nonlinearity.
+
+Without nonlinear activation, a stack of affine layers collapses into a single
+affine transformation. Depth would then provide no new expressive power of the
+kind that makes neural networks interesting.
+
+So the basic unit of the network is not just a matrix multiplication. It is an
+alternation between structured linear transformation and nonlinear shaping.
+
+## Hidden layers and representation learning
+
+Why use many layers at all? One answer is that intermediate layers can build
+useful internal representations. Early layers may detect simple local patterns.
+Later layers may combine them into more abstract features.
+
+This is the representation theme of the whole book returning in full force. A
+network is not only fitting an output map. It is also building a sequence of
+coordinate systems in which the task becomes easier.
+
+That is one reason the word *deep* matters. Depth allows repeated transformation
+of representation, not merely repetition for its own sake.
+
+## The chain rule and backpropagation
+
+Once the network is viewed as a composition of functions, the chain rule becomes
+the natural engine of learning.
+
+The loss depends on the output. The output depends on the later layers. Those
+layers depend on earlier ones. Backpropagation is the organised application of
+the chain rule that allows gradients to be propagated backward through the
+network efficiently.
+
+This should not be treated as mysterious. It is a careful bookkeeping scheme for
+partial derivatives in a composed system.
+
+## Gradients through layers
+
+Each parameter influences the final loss indirectly through the layers after it.
+Backpropagation tracks those dependencies so that each weight matrix and bias
+vector receives a gradient describing how the loss would change if that parameter
+were perturbed.
+
+Once those gradients are known, the network can be updated using the optimisation
+ideas from Chapter 3. In this sense, deep learning is not a separate mathematics.
+It is composition plus gradient-based optimisation at scale.
+
+## Capacity, expressiveness, and risk
+
+Neural networks are powerful because they can represent highly complex functions.
+That power is useful, but it also creates danger. A network with large capacity
+can fit intricate structure, including noise.
+
+So the old concerns do not disappear:
+
+- what inductive bias does the model carry?
+- what regularisation is used?
+- how is generalisation assessed?
+- what representation is being learned?
+
+The architecture changes, but the central discipline of modelling remains.
+
+## Convolutional and sequence viewpoints
+
+Different architectures reflect different structural assumptions. Convolutional
+networks exploit local pattern repetition and translation-like invariance.
+Sequence models exploit temporal dependence, memory, and contextual interaction.
+
+These should be read as modelling choices, not as fashionable labels. Each
+architecture bakes in a claim about the structure of the data.
+
+That is why earlier chapters on convolution, state, and representation matter so
+much. They prepare us to see architecture as mathematics rather than branding.
+
+## Training deep models
+
+Training a deep network combines several earlier threads:
+
+- a model family built from composed layers
+- an objective, often probabilistic or information-theoretic
+- gradients computed by backpropagation
+- iterative optimisation, usually stochastic
+- regularisation and evaluation to preserve generalisation
+
+Seen this way, deep learning is less a rupture than a synthesis.
+
+## Why depth can help
+
+Some functions are easier to express through layered composition than through a
+single shallow transformation. Depth can allow the model to reuse intermediate
+structure and build hierarchy.
+
+This is not only a theorem-friendly statement. It matches practical experience in
+vision, language, and scientific modelling, where multi-stage structure is common
+in the world itself.
+
+Still, depth is not automatically a virtue. More layers mean more parameters,
+harder optimisation, greater computational cost, and new failure modes. The
+question is always whether the structure of the task justifies the complexity.
+
+## A classification example
+
+Suppose a network is trained to classify images of leaves by species. Early
+layers may respond to edges or texture. Intermediate layers may respond to vein
+patterns or shapes. Later layers may combine these into species-level evidence.
+
+The final classifier is only one part of what has been learned. The network has
+also learned a representation hierarchy that makes the classification possible.
+
+This is why deep learning often feels powerful: the model is simultaneously
+constructing features and using them.
+
+## Limits and honesty
+
+Because neural networks can be impressive, there is a temptation to treat them as
+universal solutions. A mathematically healthy approach resists that temptation.
+
+Networks require data, computation, careful objectives, and serious evaluation.
+They can be badly calibrated, brittle under distribution shift, opaque in
+interpretation, and unnecessarily heavy for simple problems.
+
+The right lesson is not reverence. It is clarity. Deep learning is a rich and
+important extension of applied mathematics, but it does not abolish the need for
+modelling judgment.
+
+## Looking forward and outward
+
+At this point the book has assembled a coherent path:
+
+- modelling problems explicitly
+- learning predictive structure statistically
+- optimising objectives numerically
+- organising data through geometry and representation
+- speaking honestly about uncertainty
+- handling time, memory, and hidden state
+- designing objectives with information theory
+- building deep models through composition and gradients
+
+This is enough to enter modern AI without pretending that the subject began with
+software frameworks.
+
+## Exercises and prompts
+
+1. Why does a stack of affine maps without nonlinear activations fail to produce
+   genuinely deep expressive behaviour?
+2. Explain in words why backpropagation is best understood as an application of
+   the chain rule.
+3. Give an example of a structural assumption encoded by an architecture such as
+   a convolutional or sequence model.
+4. Why is it misleading to judge a neural network only by whether it can fit the
+   training data well?

@@ -1,0 +1,126 @@
+---
+title: "Statistical Learning"
+status: "draft"
+---
+
+Statistical learning begins where descriptive data analysis and statistical
+inference leave off. We are still interested in variation, uncertainty, and the
+relationship between sample and population, but now the focus is more sharply
+predictive: what structure can be learned from data so that new cases are handled
+well?
+
+In one sense this is not new. Regression, estimation, and classification all
+have deep roots in older statistics. In another sense it is a genuine shift.
+Classical inference often asks whether a parameter exists, whether an effect is
+detectable, or how uncertain an estimate should be. Statistical learning asks,
+with the same mathematical honesty, how to build rules that generalise.
+
+## Prerequisite anchors
+
+The key places to point backward are:
+
+- `vol-06/01-probability-theory.qmd`
+- `vol-06/03-statistical-inference.qmd`
+- `vol-06/04-data-analysis.qmd`
+- `vol-07/probability/02-mathematical-statistics.qmd`
+
+## From inference to prediction
+
+Suppose we fit a line to data. In a classical setting we may focus on confidence
+intervals, significance, and the interpretation of coefficients. In a learning
+setting we ask an additional question: if a fresh case arrives tomorrow, will
+the fitted relationship make a useful prediction?
+
+That question changes the centre of gravity.
+
+The model is no longer judged only by how elegantly it explains the sample in
+hand. It is judged by its performance on unseen data drawn from the same or a
+similar process. This is why the word *generalisation* becomes central. A model
+that memorises the sample without capturing durable structure has learned very
+little.
+
+## Regression and classification
+
+Two foundational supervised tasks dominate the chapter.
+
+Regression predicts quantities on a numerical scale: demand, rainfall, waiting
+time, fuel use, growth, cost, concentration. The output is continuous or at
+least ordered enough that numerical distance matters.
+
+Classification predicts categories: spam or not spam, healthy or diseased,
+approved or rejected, species A or species B. Here the output space is discrete,
+and what matters is not the numerical distance between labels but the quality of
+the decision or the probabilities attached to the classes.
+
+These are not merely two software modes. They are two mathematical settings with
+different losses, different diagnostics, and often different notions of success.
+
+## Residuals, likelihood, and fit
+
+In regression, one of the first objects to study is the residual:
+
+$$
+r_i = y_i - \hat{y}_i.
+$$
+
+Residuals remind us that the model does not meet the data exactly. They carry
+information about bias, noise, outliers, and missing structure. A clean-looking
+fit in a plot may still hide patterned residuals, and patterned residuals are a
+warning that something systematic has been missed.
+
+A parallel idea in probabilistic modelling is likelihood. Instead of asking only
+how far a prediction lies from the observed value, we ask how plausible the data
+would be under the model. That shift becomes especially important in
+classification and in models that output full probability distributions rather
+than single-point guesses.
+
+## Overfitting and underfitting
+
+A model can fail by being too rigid or too flexible.
+
+If it is too rigid, it misses real structure. This is underfitting. If it is too
+flexible, it starts adapting to accidental quirks of the training sample. This
+is overfitting.
+
+The language can sound informal, but the underlying issue is exact: how much of
+the variation in the data reflects durable signal, and how much is local noise?
+
+This is one place where the bias-variance trade-off becomes useful. A highly
+simple model may carry too much bias and miss important patterns. A highly
+sensitive model may carry too much variance and change its behaviour too much
+when the sample changes. Good learning systems live in the tension between the
+two.
+
+## Regularisation as disciplined simplification
+
+One of the healthiest ideas in statistical learning is regularisation.
+
+Instead of asking the model only to fit the data well, we also ask it to remain
+simple in a chosen sense. The simplicity might mean smaller coefficients, fewer
+effective degrees of freedom, smoother functions, or less extreme decision
+boundaries.
+
+That is not a cosmetic preference. It is a mathematical way of expressing the
+belief that wild explanations of limited data should be treated with suspicion.
+
+Later chapters will show regularisation appearing in many forms, but its spirit
+is already visible here: fitting is never the whole story.
+
+## A modelling lens for the rest of the book
+
+Statistical learning sits in the middle of the book because it teaches a habit
+that the later AI chapters depend on. We learn to ask:
+
+- what is the prediction task?
+- what kind of uncertainty is present?
+- what structure is signal and what structure is noise?
+- what constraints keep the model honest enough to generalise?
+
+These questions will return in optimisation, representation learning,
+probabilistic modelling, and neural networks.
+
+## Optional viewpoints
+
+- quality control
+- sports or environmental forecasting
+- baseline predictive systems in operations

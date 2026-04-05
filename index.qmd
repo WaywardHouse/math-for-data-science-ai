@@ -1,0 +1,39 @@
+---
+title: "Wayward House Mathematics for Data Science and AI"
+subtitle: "A follow-on book built on the Grade 7 to university mathematics path"
+---
+
+This book is the natural continuation of *Wayward House Mathematics* for readers
+who want to move from mathematical foundations into data science, machine
+learning, and AI.
+
+The existing eight-volume series already builds most of the mathematical spine:
+functions, sequences, calculus, probability, inference, linear algebra,
+numerics, optimisation, signals, estimation, and computational modelling. What
+this follow-on book adds is the ML/AI-specific structure that those tools are
+usually absorbed into too quickly: objectives, losses, representations,
+uncertainty, information, and learned systems.
+
+The goal is not to imitate a standard "math for ML" reference. The goal is to
+show how the mathematics grows into modelling, learning, and decision-making
+without pretending the reader appeared fully formed at matrix calculus.
+
+## Book shape
+
+| Chapter | Title | Core move |
+|---------|-------|-----------|
+| 1 | Mathematical modelling for data and systems | Turn data problems into explicit mathematical objects |
+| 2 | Statistical learning | Move from inference to predictive modelling |
+| 3 | Optimisation for machine learning | Treat fitting as geometry plus computation |
+| 4 | Linear algebra for representations | Treat data as vectors, spaces, projections, and embeddings |
+| 5 | Probability, Bayesian models, and uncertainty | Model belief, noise, and predictive uncertainty honestly |
+| 6 | Signals, sequences, and state estimation | Handle time, memory, filtering, and latent dynamics |
+| 7 | Information theory and learning objectives | Connect entropy, cross-entropy, and divergence to learning |
+| 8 | Neural networks and deep learning mathematics | Build layered models from composition, gradients, and representation learning |
+
+## Relationship to the main series
+
+This is a sibling book, not Volume 9 of the current sequence. It assumes the
+reader can move backward into the main series whenever a prerequisite feels
+shaky. The point is not to repeat the whole mathematics path. The point is to
+use it well.

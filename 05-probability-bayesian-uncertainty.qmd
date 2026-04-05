@@ -1,0 +1,181 @@
+---
+title: "Probability, Bayesian Models, and Uncertainty"
+status: "draft"
+---
+
+Probability enters machine learning not as decoration, but as the language we use
+when information is partial, outcomes are variable, and prediction must be made
+without certainty. If optimisation tells us how to fit models, probability tells
+us how to speak honestly about what is not known.
+
+This chapter gathers several threads that the earlier series has already
+developed: random variables, distributions, conditional reasoning, estimation,
+and inverse thinking. The distinctive move here is to connect those ideas to the
+needs of modern learning systems: uncertainty-aware prediction, probabilistic
+classification, Bayesian updating, and calibration.
+
+## Prerequisite anchors
+
+The strongest backward links are:
+
+- `vol-06/01-probability-theory.qmd`
+- `vol-06/02-distributions.qmd`
+- `vol-07/probability/01-probability-theory.qmd`
+- `vol-08/05-estimation-inverse.qmd`
+
+## Probability as modelling language
+
+When we write a deterministic function, we say exactly what output follows from a
+given input. When we write a probabilistic model, we admit that several outputs
+may be plausible and that our knowledge is incomplete.
+
+This is not weakness. It is often the most mathematically responsible thing we
+can do.
+
+In data science, uncertainty can enter from many directions:
+
+- measurement noise
+- hidden variables
+- limited sample size
+- changing environments
+- incomplete model structure
+
+Probability gives us a framework for carrying that uncertainty through the model
+instead of hiding it behind a single guess.
+
+## Random variables and distributions in learning
+
+A random variable is not "randomness itself". It is a rule assigning numerical
+values to uncertain outcomes. In machine learning we may treat a future demand,
+the class label of a new observation, or the error of a measurement as random
+variables whose distributions matter.
+
+This language matters because distributions contain more than averages. They
+carry spread, asymmetry, tail risk, and conditional structure. A model that
+reports only point predictions often conceals precisely the information a real
+decision-maker needs.
+
+## Conditional probability and prediction
+
+Prediction is usually conditional. We are not interested in the probability of an
+event in complete isolation, but in the probability of that event given the
+available evidence.
+
+A medical model asks for the probability of illness given symptoms, history, and
+test results. A forecasting model asks for the distribution of tomorrow's river
+flow given recent rainfall and snowpack. A classifier asks for the probability
+of each class given the observed features.
+
+In that sense, much of machine learning can be read as the study of conditional
+structure.
+
+## Prior, likelihood, and posterior
+
+The Bayesian grammar is especially helpful because it makes the logic of model
+revision explicit.
+
+A prior expresses what is believed before the current data are incorporated. The
+likelihood describes how plausible the observed data are under different
+parameter values or hypotheses. The posterior combines the two, giving an
+updated state of belief after the evidence is taken into account.
+
+Symbolically, the core relation is
+
+$$
+\text{posterior} \propto \text{likelihood} \times \text{prior}.
+$$
+
+This should not be read as an abstract slogan only. It is a disciplined answer
+to a practical question: how should we revise our beliefs when new information
+arrives?
+
+## Predictive distributions
+
+In many applications, a single predicted value is not enough. We want a
+distribution for the future quantity, or at least a range with an interpretable
+level of confidence.
+
+This is especially important when decisions are asymmetric. A hospital may care
+less about the average risk and more about tail events. A water manager may need
+to understand not only the expected flow but also the chance of an extreme
+shortfall. A weather forecaster may need to express the probability of freezing
+conditions, not only the predicted temperature.
+
+Predictive distributions keep the model aligned with the decision context.
+
+## Uncertainty is not only noise
+
+It is helpful to distinguish several sources of uncertainty:
+
+- aleatoric uncertainty, arising from inherent variability or measurement noise
+- epistemic uncertainty, arising from limited knowledge, sparse data, or model
+  inadequacy
+
+The terminology varies across fields, but the distinction is useful. Some
+uncertainty remains even with abundant data because the world itself is variable.
+Other uncertainty can be reduced by better models, better measurements, or more
+observations.
+
+A mature treatment of AI does not collapse these into a single vague notion of
+"confidence".
+
+## Calibration
+
+A probabilistic model can be sharp without being trustworthy, or trustworthy
+without being very informative. Calibration is the idea that stated
+probabilities should match long-run frequencies in an appropriate sense.
+
+If a model repeatedly says events have probability $0.8$, then roughly eight out
+of ten such events should occur over time. When this does not happen, the model
+may still rank cases well, but its uncertainty statements are misleading.
+
+This is why uncertainty is not only about having probabilities. It is about
+having probabilities that deserve to be believed.
+
+## Bayesian updating as model revision
+
+One of the quiet strengths of Bayesian reasoning is that it treats learning as a
+sequence of revisions. We do not pretend the model emerges once and for all in a
+single perfect fit. We begin with prior structure, encounter evidence, update,
+and repeat.
+
+That habit fits naturally with the broader philosophy of this book. Models are
+approximations, not mirrors. New data do not merely fill in blanks; they reshape
+our state of belief.
+
+## A forecasting example
+
+Suppose we want to predict tomorrow's river flow. A deterministic model might
+produce a single number. A probabilistic model might instead produce a
+distribution whose spread reflects uncertainty in precipitation, snowmelt, and
+measurement error.
+
+The second description is often more useful. Reservoir operation, flood warning,
+and drought planning depend not only on what is most likely, but on what is
+plausibly possible.
+
+## Looking ahead
+
+The next chapters will use probability in several ways: classification losses,
+state estimation, information theory, and neural-network training all rely on
+uncertainty language. The details change, but the central habit stays the same:
+do not confuse a convenient point estimate with full knowledge.
+
+For now, the key ideas to carry forward are:
+
+- probability is a language for uncertainty-aware modelling
+- prediction is usually conditional, not absolute
+- Bayesian updating provides a disciplined revision rule
+- predictive distributions are often more useful than single guesses
+- calibration matters if probabilities are to guide decisions
+
+## Exercises and prompts
+
+1. Give an example of a situation where a point prediction would be less useful
+   than a predictive distribution.
+2. Explain in words the roles of prior, likelihood, and posterior in Bayesian
+   reasoning.
+3. What is the difference between having probabilistic predictions and having
+   well-calibrated probabilistic predictions?
+4. Describe one source of uncertainty in a real-world forecasting or decision
+   problem that would remain even if a great deal of data were collected.

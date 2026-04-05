@@ -1,0 +1,212 @@
+---
+title: "Signals, Sequences, and State Estimation"
+status: "draft"
+---
+
+Much of the world does not arrive as isolated cases. It arrives in time.
+Measurements come as sequences, decisions affect later states, hidden conditions
+evolve between observations, and useful models must remember more than the
+present instant.
+
+That is why signals and state estimation belong in a mathematics-for-AI book.
+They provide a disciplined language for temporal structure. They remind us that
+data are often not unordered tables but traces of evolving systems.
+
+This chapter connects older ideas from sequences, transforms, control, and
+estimation to modern learning tasks such as time-series forecasting, filtering,
+sequence modelling, and latent-state inference.
+
+## Prerequisite anchors
+
+The strongest backward links are:
+
+- `vol-04/04-sequences-series.qmd`
+- `vol-07/fourier-pdes/01-fourier-series.qmd`
+- `vol-07/fourier-pdes/02-fourier-transforms.qmd`
+- `vol-08/01-control-feedback.qmd`
+- `vol-08/02-discrete-systems-signals.qmd`
+- `vol-08/05-estimation-inverse.qmd`
+
+## Time series are structured sequences
+
+A time series is not merely a list of numbers written in order. The order itself
+is part of the mathematics.
+
+If we observe river flow each day, sensor values each second, or sales each
+week, then nearby values may be related through inertia, forcing, seasonality,
+delay, noise, and control. Time introduces asymmetry: the future is predicted
+from the past, not the other way round.
+
+This immediately changes the modelling logic. We are no longer asking only how
+variables co-vary, but how present values inherit structure from earlier ones.
+
+## Memory and dependence
+
+Some systems can be predicted reasonably well from the current observation alone.
+Others carry memory. In a heated building, temperature depends on recent weather
+and recent control actions. In speech, a sound depends on preceding sounds. In a
+financial series, volatility often clusters over time.
+
+The mathematical question is therefore not only "what are the variables?" but
+"how much past should the model remember?"
+
+This is one of the main bridges between classical signal processing and machine
+learning. Sequence models differ partly in how they represent memory.
+
+## Convolution and filtering
+
+Convolution enters whenever the current output depends on a weighted accumulation
+of nearby or previous inputs. It is one of the recurring structural ideas of the
+chapter because it links signal processing, time-series analysis, and modern
+neural architectures.
+
+At an intuitive level, a filter transforms a signal by emphasising some
+components and suppressing others. A smoothing filter may reduce noise. A
+high-pass filter may highlight rapid changes. A matched filter may help identify
+a known pattern inside a noisy trace.
+
+In data science terms, filtering is a way of shaping information before or
+during inference. In AI terms, convolution becomes a learned pattern detector in
+time or space.
+
+## Frequency viewpoints
+
+The Fourier viewpoint teaches that a signal can often be understood not only in
+time but also in frequency. Repetition, oscillation, trend, and noise leave
+different signatures in different representations.
+
+This duality matters because some structures are easier to see after
+transformation. Periodic components may be obscure in the raw time plot but
+clear in the frequency domain. Smoothing may be described as suppressing
+high-frequency content. Compression may be possible because only a limited band
+of behaviour carries most of the meaningful variation.
+
+The general lesson matches earlier chapters: a good representation makes
+structure visible.
+
+## Autoregression and lagged structure
+
+One of the simplest temporal models assumes that the present depends on recent
+past values of the same process. This is the autoregressive instinct. We model
+the series using lagged copies of itself, perhaps together with external inputs.
+
+Even when the final model is more elaborate, the autoregressive viewpoint is
+worth understanding because it teaches a key lesson: time-series prediction often
+means turning memory into state variables or lagged features.
+
+This also clarifies why random shuffling is often inappropriate in temporal
+problems. The order is not incidental; it is part of the data-generating
+structure.
+
+## State-space thinking
+
+Many systems are governed by hidden state. We do not observe the full condition
+of the system directly, but we do observe outputs influenced by it.
+
+A state-space model separates two ideas:
+
+- how the hidden state evolves
+- how observations arise from that state
+
+This is a powerful modelling grammar. It appears in tracking, navigation,
+control, environmental monitoring, econometrics, and neuroscience. It also
+reappears in modern sequence models that maintain internal representations over
+time.
+
+State-space thinking is valuable because it distinguishes what the system *is*
+from what the sensors happen to report.
+
+## Latent dynamics
+
+The word *latent* means hidden, not imaginary. A latent variable represents
+structure that is not directly observed but helps explain the observations.
+
+A room's thermal state is latent if we measure only a few temperatures. A
+person's health status is latent if we observe only tests and symptoms. A moving
+robot's true pose is latent if we observe noisy sensors.
+
+Learning in such settings often means inferring the hidden state while it
+changes. That is more subtle than ordinary regression because the target is only
+partly visible.
+
+## Recursive estimation
+
+Recursive estimation updates beliefs as new observations arrive. Instead of
+refitting a model from scratch each time, we carry forward a current estimate and
+revise it incrementally.
+
+This is one of the most practically important ideas in dynamic systems. It makes
+real-time inference possible. The logic is especially clear in filtering:
+
+1. predict the next state from the current one
+2. receive a new observation
+3. combine prediction and observation into an updated estimate
+
+The philosophy should feel familiar by now. It is Bayesian in spirit, even when
+expressed in engineering language: hold a belief, encounter evidence, revise.
+
+## Forecasting versus filtering
+
+It helps to distinguish two common temporal tasks.
+
+Forecasting aims ahead. Given the past and present, what will happen next?
+
+Filtering aims inward. Given noisy observations, what is the best estimate of the
+current hidden state?
+
+The same system may require both. A flood-management model may filter present
+watershed conditions and then forecast future streamflow. A speech system may
+infer current phonetic structure while also anticipating what comes next.
+
+## Sequence models in AI
+
+Modern AI systems often rediscover older signal and systems ideas under new
+names. Recurrent models, attention mechanisms, convolutional sequence models, and
+state-space sequence models all address the same broad challenge: how should a
+learning system represent temporal dependence?
+
+The details differ, but the mathematics does not begin from nowhere. Memory,
+latent state, filtering, and transformed representations are older and deeper
+than the latest architecture.
+
+## A hydrology example
+
+Suppose we want to estimate streamflow in a basin using rainfall, snowpack, and
+gauge measurements. The present day's flow depends not only on today's rainfall
+but on accumulated catchment storage, melt processes, and delayed routing.
+
+A static regression may catch some correlation, but a temporal model can express
+much more:
+
+- lagged dependence
+- hidden watershed state
+- uncertainty in forcing and measurement
+- recursive updates as new observations arrive
+
+This is a good example of why temporal modelling belongs naturally beside machine
+learning rather than outside it.
+
+## Looking ahead
+
+The next chapter turns from signals and uncertainty in time toward information
+and objective design. That move is natural because learning systems do not only
+store and transform information; they also need principled measures of surprise,
+uncertainty, and mismatch.
+
+For now, the main ideas to carry forward are:
+
+- time series are structured by order and dependence
+- filtering and convolution are central tools for temporal information
+- state-space models distinguish hidden dynamics from noisy observations
+- recursive estimation updates beliefs as data arrive
+- modern sequence models continue older mathematical themes of memory and state
+
+## Exercises and prompts
+
+1. Give an example of a problem where random shuffling of the observations would
+   destroy important structure.
+2. Explain in words the difference between forecasting a future quantity and
+   estimating a current hidden state.
+3. Why is a latent variable not the same thing as a fictitious one?
+4. Describe a real system in which memory of earlier inputs affects present
+   output. What kind of state might summarise that memory?

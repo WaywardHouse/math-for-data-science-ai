@@ -1,0 +1,287 @@
+---
+title: "Optimisation for Machine Learning"
+status: "draft"
+---
+
+Once a modelling problem has been stated and a loss has been chosen, a new
+question takes over:
+
+How do we actually find a model that performs well?
+
+That is the job of optimisation. In machine learning, optimisation is the bridge
+between a mathematical objective and an implemented learning rule. We do not
+merely say what counts as a good model. We search for one.
+
+This chapter connects the calculus and numerical methods of the earlier series
+to the practical logic of fitting modern models. The central ideas are not new:
+rates of change, local approximation, descent, iteration, numerical stability,
+and constrained trade-offs. What is new is the scale and role they acquire in
+learning systems.
+
+## Prerequisite anchors
+
+The strongest backward links are:
+
+- `vol-05/02-differential-calculus.qmd` for gradients, tangent ideas, and local change
+- `vol-07/numerics/01-numerical-methods.qmd` for iteration and approximation
+- `vol-07/optimisation/01-linear-programming.qmd` for objective-driven reasoning
+- `vol-08/07-nonlinear-optimisation.qmd` for more general optimisation landscapes
+
+## Learning as minimisation
+
+Many learning problems can be written in the form
+
+$$
+\text{choose } \theta \text{ to minimise } J(\theta),
+$$
+
+where $\theta$ denotes the model parameters and $J$ is an objective function.
+
+Often the objective is built from a loss over many examples:
+
+$$
+J(\theta) = \frac{1}{n}\sum_{i=1}^n L\big(y_i, f(x_i;\theta)\big).
+$$
+
+This compact expression carries a great deal of meaning. The model family
+$f(x;\theta)$ has already been chosen. The data $(x_i, y_i)$ have already been
+gathered. The loss $L$ has already encoded what kind of error matters. The
+remaining question is how to move through parameter space in a way that improves
+the objective.
+
+So training is not mysterious. It is repeated optimisation under imperfect
+information and finite computation.
+
+## The geometry of a loss landscape
+
+To optimise well, it helps to picture the objective as a landscape. Each
+possible parameter setting corresponds to a point in parameter space, and the
+objective value tells us the height of the landscape at that point.
+
+This image is approximate, since real parameter spaces may have thousands or
+millions of dimensions. Still, it captures the right logic:
+
+- high regions correspond to poor fit
+- low regions correspond to better fit
+- slopes indicate directions of improvement
+- flat regions and narrow valleys affect numerical behaviour
+
+The visual thread of objective landscapes belongs at the centre of this book
+because it ties together calculus, numerics, and learning. When a model is
+trained, it is not merely "updated". It is moved through a landscape shaped by
+the data and the modelling choices.
+
+## Gradients and descent
+
+In one dimension, the derivative tells us how a function changes locally. In
+many dimensions, the gradient plays the same role. For an objective
+$J(\theta)$, the gradient $\nabla J(\theta)$ points in the direction of
+steepest increase. If we want to reduce the objective, we move in the opposite
+direction.
+
+This gives the basic update rule for gradient descent:
+
+$$
+\theta_{k+1} = \theta_k - \eta \nabla J(\theta_k),
+$$
+
+where $\eta$ is the step size or learning rate.
+
+The formula is simple enough to memorise, but its meaning is richer than it may
+first appear:
+
+- the gradient is local information, not global knowledge
+- the step size controls how strongly we trust that local information
+- the update is iterative, so errors in one step can accumulate or be corrected
+
+This is why optimisation in practice is never only about derivatives. It is also
+about judgment concerning scale, stability, and stopping.
+
+## Step size is a modelling decision in disguise
+
+If the step size is too small, learning is slow. If it is too large, the updates
+may overshoot good regions, oscillate, or diverge.
+
+This is one reason machine learning inherits so much from numerical analysis.
+Iterative methods behave differently depending on the geometry of the problem.
+The same learning rate that works well in one model may be disastrous in
+another.
+
+It is tempting to treat step-size tuning as a technical nuisance, but it reveals
+something more fundamental: optimisation is part of the model's behaviour. A
+loss function may describe the destination, but the optimisation rule affects
+which destination is actually reached in finite time.
+
+## Convex and nonconvex problems
+
+Some optimisation problems are especially well behaved. If the objective is
+convex, then any local minimum is also a global minimum. This gives strong
+mathematical reassurance. Linear least squares and many regularised models have
+this flavour.
+
+But modern machine learning frequently leaves the convex world. Neural networks
+and other expressive model families produce nonconvex objectives with many
+valleys, ridges, plateaus, and saddle-like regions.
+
+This does not make optimisation hopeless. It does mean we must think
+differently. We are no longer promised a unique best point found by clean global
+logic. Instead we work with iterative methods that often find useful solutions
+without providing perfect guarantees.
+
+The important intellectual move is not to panic at the loss of certainty. It is
+to understand which guarantees have disappeared and which practical regularities
+remain.
+
+## Local minima, saddles, and flat regions
+
+Students often hear that machine learning fails because of local minima. That
+can happen, but in high-dimensional problems other difficulties are often just
+as important.
+
+A saddle point is a place where the gradient is near zero even though the point
+is not a minimum. Some directions curve upward and others curve downward. A flat
+region may produce tiny gradients and painfully slow progress. A narrow curved
+valley may require very careful step sizes to make progress without bouncing from
+side to side.
+
+So the real challenge is not simply "avoid bad minima". It is to navigate
+landscapes whose local geometry varies from place to place.
+
+## Conditioning and sensitivity
+
+Conditioning measures how sensitive a problem is to perturbations. In
+optimisation, poor conditioning often shows up when one direction in parameter
+space changes the objective much more sharply than another.
+
+Geometrically, this can make level sets elongated rather than round. Numerically
+it means gradient descent may zig-zag inefficiently, making progress in some
+directions while struggling in others.
+
+This is a familiar theme from linear algebra and numerical methods: not all
+problems are equally stable, even when the formulas look innocent. The same is
+true in machine learning. When training is unstable or painfully slow, the issue
+is often not lack of data alone but awkward geometry in the objective.
+
+## Stochastic optimisation and minibatches
+
+For large datasets, computing the full gradient over every example at every step
+may be too expensive. A standard compromise is stochastic optimisation.
+
+Instead of evaluating the objective on all $n$ examples, we estimate the
+gradient from a smaller subset, often called a minibatch. The update becomes
+noisier, but much cheaper.
+
+This is one of the beautiful compromises of modern ML:
+
+- exactness is relaxed
+- iteration becomes faster
+- many more updates become possible
+
+The resulting path through parameter space is no longer a smooth deterministic
+descent. It jitters. Yet that noise can sometimes be helpful, nudging the
+algorithm away from shallow traps or narrow pathological regions.
+
+So stochasticity here is not mere sloppiness. It is a computational strategy
+that changes the character of the optimisation process.
+
+## Regularisation changes the landscape
+
+Earlier we described regularisation as disciplined simplification. From the
+optimisation point of view, regularisation also reshapes the objective.
+
+If we penalise large parameter magnitudes, for example, the new objective may
+look like
+
+$$
+J_{\text{reg}}(\theta) = J(\theta) + \lambda R(\theta),
+$$
+
+where $R(\theta)$ is a penalty term and $\lambda$ controls its strength.
+
+This changes what counts as a desirable solution. A parameter setting that fits
+the training data slightly better may nevertheless be rejected if it is too
+complex or unstable. In geometric language, regularisation alters the landscape.
+In modelling language, it encodes caution.
+
+## Optimisation is not the same as generalisation
+
+It is possible to optimise the training objective very well and still obtain a
+poor model.
+
+This distinction is essential. Optimisation asks whether we can find parameters
+that make the chosen objective small on the data we are using. Generalisation
+asks whether the resulting model will behave well on new data.
+
+The two ideas are related but not identical. An expressive model with enough
+capacity can sometimes drive training error extremely low. That tells us the
+optimizer has succeeded at its local task. It does not by itself tell us that
+the model has learned something durable.
+
+This is why machine learning cannot be reduced to optimisation alone. The
+objective matters. The data split matters. The model family matters. The
+evaluation rule matters.
+
+## A worked example: fitting a linear predictor
+
+Suppose we model housing price by
+
+$$
+\hat{y} = \beta_0 + \beta_1 x_1 + \beta_2 x_2,
+$$
+
+where $x_1$ is floor area and $x_2$ is lot size. If we use mean squared error,
+the optimisation problem becomes
+
+$$
+J(\beta_0,\beta_1,\beta_2) =
+\frac{1}{n}\sum_{i=1}^n \left(y_i - \beta_0 - \beta_1 x_{i1} - \beta_2 x_{i2}\right)^2.
+$$
+
+This objective is smooth and well behaved. The gradient can be computed, and the
+parameters can be improved iteratively. Because the model is relatively simple,
+the optimisation is usually not the hardest part of the problem. Data quality,
+feature choice, and model adequacy often matter more.
+
+That observation is healthy. It reminds us that optimisation serves modelling,
+not the other way round.
+
+## A second example: training a layered model
+
+Now imagine the model is a neural network with many hidden units and nonlinear
+activations. The same basic optimisation language survives:
+
+- define an objective
+- compute gradients
+- update parameters iteratively
+
+But the terrain becomes much more complicated. The number of parameters grows.
+The geometry becomes strongly nonconvex. Minibatch methods become the practical
+default. Conditioning and scaling become more important.
+
+The mathematics has not been abandoned. It has become more demanding.
+
+## Looking ahead
+
+The next chapter turns toward linear algebra and representation. This is a
+natural continuation, because optimisation acts on parameter spaces, while
+representation theory asks what kinds of spaces the data themselves inhabit.
+
+For now, the key ideas to carry forward are:
+
+- training is an optimisation problem
+- gradients provide local directional information
+- landscape geometry affects computational behaviour
+- stochastic methods trade exactness for scalable iteration
+- a well-optimised model is not automatically a well-generalising model
+
+## Exercises and prompts
+
+1. Explain in words what the update rule
+   $\theta_{k+1} = \theta_k - \eta \nabla J(\theta_k)$ means. What role is
+   played by the gradient, and what role is played by the learning rate?
+2. Give an example of a situation where a model might achieve a very low training
+   error and still be untrustworthy.
+3. Why can poor conditioning slow down gradient descent even when the objective
+   is smooth?
+4. Describe one advantage and one disadvantage of using minibatches instead of
+   full-dataset gradients.

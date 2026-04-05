@@ -1,0 +1,40 @@
+---
+title: "Roadmap and Build Notes"
+---
+
+## Recommended writing order
+
+1. `01-mathematical-modelling.qmd`
+2. `04-linear-algebra-representations.qmd`
+3. `02-statistical-learning.qmd`
+4. `03-optimisation-for-ml.qmd`
+5. `05-probability-bayesian-uncertainty.qmd`
+6. `06-signals-sequences-state-estimation.qmd`
+7. `07-information-theory-objectives.qmd`
+8. `08-neural-networks-deep-learning.qmd`
+
+## Why this order
+
+- modelling first gives the whole book a common grammar
+- linear algebra and statistical learning then establish the two main ML
+  viewpoints: representation and inference
+- optimisation must land before deep learning
+- information theory works better once the reader already cares about losses and
+  predictive distributions
+- neural networks should arrive after the reader has enough mathematics to see
+  them as composed functions rather than as a bag of tricks
+
+## Design guidance
+
+This follow-on book should preserve the house style:
+
+- direct prose
+- multiple representations
+- visible links back into the main series
+- at least one interactive per chapter
+- optional domain viewpoints that stay mathematically parallel to the main case
+
+## Structural warning
+
+Do not let the book collapse into a survey of algorithms. It should remain a
+mathematics book about data science and AI, not a catalogue of model names.
