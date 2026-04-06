@@ -57,6 +57,45 @@ kind that makes neural networks interesting.
 So the basic unit of the network is not just a matrix multiplication. It is an
 alternation between structured linear transformation and nonlinear shaping.
 
+The figure below shows four activation functions that appear widely in practice.
+Each makes a different trade-off between smoothness, sparsity, and gradient
+behaviour.
+
+```{python}
+#| echo: false
+#| label: fig-activations
+#| fig-cap: "Four activation functions plotted over $x \\in [-3, 3]$. ReLU introduces sparsity by zeroing negative inputs. Sigmoid and tanh are smooth saturating functions. Leaky ReLU ($\\alpha = 0.1$) avoids dead neurons by allowing a small negative slope."
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(-3, 3, 400)
+
+relu      = np.maximum(0, x)
+sigmoid   = 1.0 / (1.0 + np.exp(-x))
+tanh_val  = np.tanh(x)
+leaky_relu = np.where(x >= 0, x, 0.1 * x)
+
+fig, ax = plt.subplots(figsize=(8, 4))
+
+ax.plot(x, relu,       label="ReLU",          linewidth=2, color="#4e8ac4")
+ax.plot(x, sigmoid,    label="Sigmoid",        linewidth=2, color="#c44e4e")
+ax.plot(x, tanh_val,   label="Tanh",           linewidth=2, color="#4ec48a")
+ax.plot(x, leaky_relu, label="Leaky ReLU (0.1)", linewidth=2, color="#c49e4e",
+        linestyle="--")
+
+ax.axhline(0, color="grey", linewidth=0.6, linestyle=":")
+ax.axvline(0, color="grey", linewidth=0.6, linestyle=":")
+ax.set_xlabel("$x$")
+ax.set_ylabel("$\\sigma(x)$")
+ax.set_title("Common activation functions")
+ax.legend(fontsize=9)
+ax.set_xlim(-3, 3)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Hidden layers and representation learning
 
 Why use many layers at all? One answer is that intermediate layers can build
@@ -70,6 +109,73 @@ coordinate systems in which the task becomes easier.
 That is one reason the word *deep* matters. Depth allows repeated transformation
 of representation, not merely repetition for its own sake.
 
+The figure below makes this geometric transformation visible. Two interleaved
+spirals that are not linearly separable in their original coordinates become
+progressively more separable as the data passes through network layers.
+
+```{python}
+#| echo: false
+#| label: fig-representation
+#| fig-cap: "How a two-layer network reshapes data. Left: two interleaved spirals in the original feature space — no linear boundary can separate them. Middle: after one hidden layer (random weights + ReLU), the classes begin to untangle. Right: after a second layer, the two classes are more linearly separable, illustrating how depth builds useful representations."
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(0)
+
+def make_spirals(n=150):
+    t = np.linspace(0, 4 * np.pi, n)
+    r = t / (4 * np.pi)
+    noise = 0.08
+    X0 = np.stack([r * np.cos(t) + rng.normal(0, noise, n),
+                   r * np.sin(t) + rng.normal(0, noise, n)], axis=1)
+    X1 = np.stack([r * np.cos(t + np.pi) + rng.normal(0, noise, n),
+                   r * np.sin(t + np.pi) + rng.normal(0, noise, n)], axis=1)
+    return np.vstack([X0, X1]), np.array([0] * n + [1] * n)
+
+def relu(z):
+    return np.maximum(0, z)
+
+X, y = make_spirals(150)
+n_in = 2
+
+# Layer 1: random weights (fixed for reproducibility)
+W1 = rng.normal(0, 1.0, (8, n_in))
+b1 = rng.normal(0, 0.1, (8,))
+H1 = relu(X @ W1.T + b1)
+
+# Layer 2: another random projection down to 2D for plotting
+W2 = rng.normal(0, 1.0, (2, 8))
+b2 = rng.normal(0, 0.1, (2,))
+H2 = relu(H1 @ W2.T + b2)
+
+colours = np.where(y == 0, "#4e8ac4", "#c44e4e")
+
+fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+
+for ax, data, title in zip(
+    axes,
+    [X, H1[:, :2], H2],
+    ["Original space", "After layer 1 (ReLU)", "After layer 2 (ReLU)"]
+):
+    ax.scatter(data[:, 0], data[:, 1], c=colours, s=12, alpha=0.7,
+               edgecolors="none")
+    ax.set_title(title, fontsize=10)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+# Proxy artists for legend on last panel
+from matplotlib.lines import Line2D
+handles = [Line2D([0], [0], marker='o', color='w', markerfacecolor='#4e8ac4',
+                  markersize=7, label='Class 0'),
+           Line2D([0], [0], marker='o', color='w', markerfacecolor='#c44e4e',
+                  markersize=7, label='Class 1')]
+axes[2].legend(handles=handles, fontsize=8, loc="lower right")
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## The chain rule and backpropagation
 
 Once the network is viewed as a composition of functions, the chain rule becomes
@@ -82,6 +188,89 @@ network efficiently.
 
 This should not be treated as mysterious. It is a careful bookkeeping scheme for
 partial derivatives in a composed system.
+
+The figure below draws the computation graph explicitly, showing both the forward
+pass quantities and the backward-flowing gradients at each stage.
+
+```{python}
+#| echo: false
+#| label: fig-backprop
+#| fig-cap: "Computation graph for a three-layer network. Each node (box) is a transformation; each edge carries both a forward quantity (above the arrow) and a backward gradient (below). Backpropagation applies the chain rule left-to-right in the reverse direction, accumulating $\\partial L / \\partial \\theta$ for every parameter."
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.set_xlim(0, 10)
+ax.set_ylim(0, 4)
+ax.axis("off")
+
+box_colour  = "#4e8ac4"
+loss_colour = "#c44e4e"
+arrow_kw = dict(arrowstyle="-|>", color="grey", lw=1.2,
+                mutation_scale=12,
+                connectionstyle="arc3,rad=0.0")
+
+nodes = [
+    (0.5, 1.5, "$x$\ninput",    "#555555"),
+    (2.5, 1.5, "$h_1 = \\sigma(W_1 x + b_1)$", box_colour),
+    (5.0, 1.5, "$h_2 = \\sigma(W_2 h_1 + b_2)$", box_colour),
+    (7.5, 1.5, "$\\hat{y} = W_3 h_2 + b_3$", box_colour),
+    (9.2, 1.5, "$L$\nloss",     loss_colour),
+]
+
+# Draw boxes
+box_w, box_h = 1.6, 0.9
+for (cx, cy, label, colour) in nodes:
+    bx = cx - box_w / 2
+    by = cy - box_h / 2
+    rect = FancyBboxPatch((bx, by), box_w, box_h,
+                          boxstyle="round,pad=0.05",
+                          facecolor=colour, edgecolor="white",
+                          linewidth=1.2, alpha=0.85, zorder=2)
+    ax.add_patch(rect)
+    ax.text(cx, cy, label, ha="center", va="center", fontsize=7.5,
+            color="white", zorder=3)
+
+# Draw forward arrows between boxes (above centre line)
+edge_pairs = [
+    (nodes[0], nodes[1], "$x$",   "$\\frac{\\partial L}{\\partial h_1}$"),
+    (nodes[1], nodes[2], "$h_1$", "$\\frac{\\partial L}{\\partial h_2}$"),
+    (nodes[2], nodes[3], "$h_2$", "$\\frac{\\partial L}{\\partial \\hat{y}}$"),
+    (nodes[3], nodes[4], "$\\hat{y}$", "$\\frac{\\partial L}{\\partial \\hat{y}}$"),
+]
+
+for (n_from, n_to, fwd_label, bwd_label) in edge_pairs:
+    x0 = n_from[0] + box_w / 2
+    x1 = n_to[0]   - box_w / 2
+    y0 = y1 = n_from[1]
+    mid_x = (x0 + x1) / 2
+
+    # Forward arrow
+    ax.annotate("", xy=(x1, y0 + 0.08), xytext=(x0, y0 + 0.08),
+                arrowprops=dict(arrowstyle="-|>", color="#4e8ac4", lw=1.2,
+                                mutation_scale=10))
+    ax.text(mid_x, y0 + 0.32, fwd_label, ha="center", va="bottom",
+            fontsize=7, color="#4e8ac4")
+
+    # Backward arrow
+    ax.annotate("", xy=(x0, y0 - 0.08), xytext=(x1, y0 - 0.08),
+                arrowprops=dict(arrowstyle="-|>", color="#c44e4e", lw=1.2,
+                                mutation_scale=10))
+    ax.text(mid_x, y0 - 0.38, bwd_label, ha="center", va="top",
+            fontsize=7, color="#c44e4e")
+
+# Legend
+ax.text(5.0, 3.55, "forward pass", ha="center", fontsize=8, color="#4e8ac4",
+        weight="bold")
+ax.text(5.0, 0.20, "backward pass (gradients)", ha="center", fontsize=8,
+        color="#c44e4e", weight="bold")
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
 
 ## Gradients through layers
 
@@ -147,6 +336,120 @@ Still, depth is not automatically a virtue. More layers mean more parameters,
 harder optimisation, greater computational cost, and new failure modes. The
 question is always whether the structure of the task justifies the complexity.
 
+The figure below provides a direct comparison. Both a shallow-wide network and a
+deep-narrow network are trained from scratch using pure numpy gradient descent on
+the same synthetic task. Depth often helps on structured problems; width alone
+does not always substitute.
+
+```{python}
+#| echo: false
+#| label: fig-depth-vs-width
+#| fig-cap: "Training and validation loss curves for two architectures on the same synthetic classification task (pure numpy gradient descent). Left: a shallow network (1 hidden layer, 64 units). Right: a deep-narrow network (4 hidden layers, 16 units each). Depth can reduce both training and validation loss on structured function classes."
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(7)
+
+# ---- Data: XOR-like four-quadrant task ----
+def make_data(n=300):
+    X = rng.uniform(-1, 1, (n, 2))
+    y = ((X[:, 0] * X[:, 1]) > 0).astype(float)
+    return X, y
+
+X_tr, y_tr = make_data(300)
+X_va, y_va = make_data(150)
+
+def sigmoid(z):
+    return 1.0 / (1.0 + np.exp(-np.clip(z, -40, 40)))
+
+def relu(z):
+    return np.maximum(0, z)
+
+def bce(probs, targets):
+    probs = np.clip(probs, 1e-9, 1 - 1e-9)
+    return -np.mean(targets * np.log(probs) + (1 - targets) * np.log(1 - probs))
+
+def init_params(layer_sizes, scale=0.1):
+    params = []
+    for i in range(len(layer_sizes) - 1):
+        W = rng.normal(0, scale, (layer_sizes[i + 1], layer_sizes[i]))
+        b = np.zeros(layer_sizes[i + 1])
+        params.append((W, b))
+    return params
+
+def forward(X, params, activation=relu):
+    h = X
+    cache = [h]
+    for i, (W, b) in enumerate(params):
+        z = h @ W.T + b
+        h = sigmoid(z) if i == len(params) - 1 else activation(z)
+        cache.append(h)
+    return h, cache
+
+def backward(cache, params, y, activation=relu):
+    n = y.shape[0]
+    grads = []
+    delta = cache[-1] - y.reshape(-1, 1)
+    for i in reversed(range(len(params))):
+        W, b = params[i]
+        h_prev = cache[i]
+        dW = (delta.T @ h_prev) / n
+        db = delta.mean(axis=0)
+        if i > 0:
+            d_prev = delta @ W
+            h = cache[i]
+            if activation == relu:
+                d_prev *= (cache[i] > 0).astype(float)
+            else:
+                d_prev *= (1 - cache[i] ** 2)
+        grads.insert(0, (dW, db))
+        if i > 0:
+            delta = d_prev
+    return grads
+
+def train(layer_sizes, n_epochs=300, lr=0.05):
+    params = init_params(layer_sizes, scale=0.3)
+    tr_losses, va_losses = [], []
+    for _ in range(n_epochs):
+        preds_tr, cache = forward(X_tr, params)
+        grads = backward(cache, params, y_tr)
+        params = [(W - lr * dW, b - lr * db)
+                  for (W, b), (dW, db) in zip(params, grads)]
+        preds_va, _ = forward(X_va, params)
+        tr_losses.append(bce(preds_tr.ravel(), y_tr))
+        va_losses.append(bce(preds_va.ravel(), y_va))
+    return tr_losses, va_losses
+
+n_epochs = 400
+shallow_tr, shallow_va = train([2, 64, 1],          n_epochs=n_epochs, lr=0.05)
+deep_tr,    deep_va    = train([2, 16, 16, 16, 1],  n_epochs=n_epochs, lr=0.05)
+
+epochs = np.arange(1, n_epochs + 1)
+colour_tr = "#4e8ac4"
+colour_va = "#c44e4e"
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+for ax, tr_l, va_l, title in zip(
+    axes,
+    [shallow_tr, deep_tr],
+    [shallow_va, deep_va],
+    ["Shallow-wide (1 layer, 64 units)", "Deep-narrow (4 layers, 16 units)"]
+):
+    ax.plot(epochs, tr_l, color=colour_tr, linewidth=1.5, label="Train")
+    ax.plot(epochs, va_l, color=colour_va, linewidth=1.5, label="Validation",
+            linestyle="--")
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Binary cross-entropy loss")
+    ax.set_title(title, fontsize=9)
+    ax.legend(fontsize=8)
+    ax.set_ylim(0, 0.9)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## A classification example
 
 Suppose a network is trained to classify images of leaves by species. Early
@@ -159,6 +462,132 @@ also learned a representation hierarchy that makes the classification possible.
 This is why deep learning often feels powerful: the model is simultaneously
 constructing features and using them.
 
+## Interactive exploration
+
+The cell below trains a two-layer numpy network on a small XOR-like dataset.
+Adjust the architecture and training hyperparameters and watch the decision
+boundary and loss curve respond.
+
+::: {.callout-tip}
+## What to try
+
+- Increase `N_HIDDEN` from 4 to 16 and observe how the decision boundary becomes smoother.
+- Switch `ACTIVATION` from `'relu'` to `'tanh'` and compare convergence speed.
+- Reduce `LEARNING_RATE` to `0.005` and see how many more epochs are needed.
+- Set `N_EPOCHS` to `2000` with `N_HIDDEN = 8` for a well-converged result.
+:::
+
+::: {.pyodide-cell}
+```python
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import io, base64
+
+# --- Try changing these parameters ---
+N_HIDDEN      = 8        # hidden units per layer (2–32)
+ACTIVATION    = 'relu'   # 'relu' or 'tanh'
+LEARNING_RATE = 0.05
+N_EPOCHS      = 500
+
+# ---- XOR-like dataset ----
+rng = np.random.default_rng(42)
+n = 120
+X = rng.uniform(-1, 1, (n, 2))
+y = ((X[:, 0] * X[:, 1]) > 0).astype(float)
+
+def act(z):
+    if ACTIVATION == 'relu':
+        return np.maximum(0, z)
+    return np.tanh(z)
+
+def act_grad(h):
+    if ACTIVATION == 'relu':
+        return (h > 0).astype(float)
+    return 1 - h ** 2
+
+def sigmoid(z):
+    return 1.0 / (1.0 + np.exp(-np.clip(z, -40, 40)))
+
+# Initialise weights
+W1 = rng.normal(0, 0.5, (N_HIDDEN, 2))
+b1 = np.zeros(N_HIDDEN)
+W2 = rng.normal(0, 0.5, (N_HIDDEN, N_HIDDEN))
+b2 = np.zeros(N_HIDDEN)
+W3 = rng.normal(0, 0.5, (1, N_HIDDEN))
+b3 = np.zeros(1)
+
+losses = []
+for _ in range(N_EPOCHS):
+    # Forward
+    z1 = X @ W1.T + b1
+    h1 = act(z1)
+    z2 = h1 @ W2.T + b2
+    h2 = act(z2)
+    z3 = h2 @ W3.T + b3
+    out = sigmoid(z3).ravel()
+
+    out_c = np.clip(out, 1e-9, 1 - 1e-9)
+    loss = -np.mean(y * np.log(out_c) + (1 - y) * np.log(1 - out_c))
+    losses.append(loss)
+
+    # Backward
+    d3 = (out - y).reshape(-1, 1) / n
+    dW3 = d3.T @ h2
+    db3 = d3.sum(axis=0)
+
+    d2 = d3 @ W3 * act_grad(h2)
+    dW2 = d2.T @ h1
+    db2 = d2.sum(axis=0)
+
+    d1 = d2 @ W2 * act_grad(h1)
+    dW1 = d1.T @ X
+    db1 = d1.sum(axis=0)
+
+    W1 -= LEARNING_RATE * dW1
+    b1 -= LEARNING_RATE * db1
+    W2 -= LEARNING_RATE * dW2
+    b2 -= LEARNING_RATE * db2
+    W3 -= LEARNING_RATE * dW3
+    b3 -= LEARNING_RATE * db3
+
+# Decision boundary grid
+res = 80
+gx = np.linspace(-1, 1, res)
+gy = np.linspace(-1, 1, res)
+GX, GY = np.meshgrid(gx, gy)
+G = np.stack([GX.ravel(), GY.ravel()], axis=1)
+
+gh1 = act(G @ W1.T + b1)
+gh2 = act(gh1 @ W2.T + b2)
+gout = sigmoid(gh2 @ W3.T + b3).reshape(res, res)
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+axes[0].contourf(GX, GY, gout, levels=20, cmap='RdBu_r', alpha=0.7)
+axes[0].scatter(X[:, 0], X[:, 1],
+                c=['#4e8ac4' if yi == 0 else '#c44e4e' for yi in y],
+                s=18, edgecolors='white', linewidths=0.4)
+axes[0].set_title(f'Decision boundary\n({ACTIVATION}, {N_HIDDEN} units)')
+axes[0].set_xlabel('$x_1$')
+axes[0].set_ylabel('$x_2$')
+
+axes[1].plot(losses, color='#4e8ac4', linewidth=1.5)
+axes[1].set_xlabel('Epoch')
+axes[1].set_ylabel('Binary cross-entropy loss')
+axes[1].set_title('Training loss')
+
+fig.tight_layout(pad=2.0)
+
+buf = io.BytesIO()
+fig.savefig(buf, format='png', dpi=96, bbox_inches='tight')
+buf.seek(0)
+img_b64 = base64.b64encode(buf.read()).decode()
+print(f'<img src="data:image/png;base64,{img_b64}" style="max-width:100%">')
+```
+:::
+
 ## Limits and honesty
 
 Because neural networks can be impressive, there is a temptation to treat them as
@@ -170,7 +599,7 @@ interpretation, and unnecessarily heavy for simple problems.
 
 The right lesson is not reverence. It is clarity. Deep learning is a rich and
 important extension of applied mathematics, but it does not abolish the need for
-modelling judgment.
+modelling judgment [@goodfellow2016; @bishop2006].
 
 ## Looking forward and outward
 

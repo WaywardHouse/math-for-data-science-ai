@@ -97,6 +97,96 @@ first appear:
 This is why optimisation in practice is never only about derivatives. It is also
 about judgment concerning scale, stability, and stopping.
 
+```{python}
+#| label: fig-loss-landscape
+#| fig-cap: "Left: gradient descent on a convex bowl $L(w_1, w_2) = w_1^2 + 2w_2^2$. Arrows show successive update steps. Right: a nonconvex landscape with a saddle point and a local minimum — descent from the same starting region may stall or settle at different points depending on initialisation."
+#| echo: false
+
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+# --- Left panel: convex bowl ---
+w1 = np.linspace(-3, 3, 300)
+w2 = np.linspace(-3, 3, 300)
+W1, W2 = np.meshgrid(w1, w2)
+
+L_convex = W1**2 + 2 * W2**2
+
+ax = axes[0]
+levels = np.linspace(0.1, 14, 18)
+ax.contour(W1, W2, L_convex, levels=levels, colors='#4e8ac4', linewidths=0.8, alpha=0.85)
+
+# Gradient descent path on convex landscape
+eta = 0.18
+path = np.array([2.5, 2.2])
+traj = [path.copy()]
+for _ in range(18):
+    grad = np.array([2 * path[0], 4 * path[1]])
+    path = path - eta * grad
+    traj.append(path.copy())
+traj = np.array(traj)
+
+ax.plot(traj[:, 0], traj[:, 1], color='#c44e4e', lw=1.4, zorder=3)
+ax.scatter(traj[:-1, 0], traj[:-1, 1], s=18, color='#c44e4e', zorder=4)
+# Draw quiver arrows between successive points
+for k in range(0, len(traj) - 1, 2):
+    dx = traj[k+1, 0] - traj[k, 0]
+    dy = traj[k+1, 1] - traj[k, 1]
+    ax.annotate('', xy=(traj[k+1, 0], traj[k+1, 1]),
+                xytext=(traj[k, 0], traj[k, 1]),
+                arrowprops=dict(arrowstyle='->', color='#c44e4e', lw=1.2))
+
+ax.scatter([0], [0], s=60, color='#2a6099', zorder=5, marker='*', label='Global min')
+ax.set_title('Convex landscape', fontsize=11)
+ax.set_xlabel('$w_1$')
+ax.set_ylabel('$w_2$')
+ax.legend(fontsize=8, loc='upper right')
+ax.set_xlim(-3, 3)
+ax.set_ylim(-3, 3)
+
+# --- Right panel: nonconvex landscape ---
+L_nonconvex = (W1**2 - 1)**2 + 2 * W2**2 - 0.5 * W1
+
+ax2 = axes[1]
+levels_nc = np.linspace(-0.3, 5, 22)
+ax2.contour(W1, W2, L_nonconvex, levels=levels_nc, colors='#4e8ac4', linewidths=0.8, alpha=0.85)
+
+# Path from a starting point that passes near the saddle
+eta_nc = 0.08
+path_nc = np.array([-0.05, 1.8])
+traj_nc = [path_nc.copy()]
+for _ in range(30):
+    gw1 = 4 * path_nc[0] * (path_nc[0]**2 - 1) - 0.5
+    gw2 = 4 * path_nc[1]
+    path_nc = path_nc - eta_nc * np.array([gw1, gw2])
+    traj_nc.append(path_nc.copy())
+traj_nc = np.array(traj_nc)
+
+ax2.plot(traj_nc[:, 0], traj_nc[:, 1], color='#c44e4e', lw=1.4, zorder=3)
+ax2.scatter(traj_nc[:-1, 0], traj_nc[:-1, 1], s=18, color='#c44e4e', zorder=4)
+for k in range(0, len(traj_nc) - 1, 4):
+    ax2.annotate('', xy=(traj_nc[k+1, 0], traj_nc[k+1, 1]),
+                 xytext=(traj_nc[k, 0], traj_nc[k, 1]),
+                 arrowprops=dict(arrowstyle='->', color='#c44e4e', lw=1.2))
+
+# Mark approximate saddle (~0, 0) and local min (~1.05, 0)
+ax2.scatter([0.0], [0.0], s=60, color='orange', zorder=5, marker='D', label='Saddle')
+ax2.scatter([1.1], [0.0], s=60, color='#2a6099', zorder=5, marker='*', label='Local min')
+ax2.set_title('Nonconvex landscape', fontsize=11)
+ax2.set_xlabel('$w_1$')
+ax2.set_ylabel('$w_2$')
+ax2.legend(fontsize=8, loc='upper right')
+ax2.set_xlim(-3, 3)
+ax2.set_ylim(-3, 3)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Step size is a modelling decision in disguise
 
 If the step size is too small, learning is slow. If it is too large, the updates
@@ -111,6 +201,51 @@ It is tempting to treat step-size tuning as a technical nuisance, but it reveals
 something more fundamental: optimisation is part of the model's behaviour. A
 loss function may describe the destination, but the optimisation rule affects
 which destination is actually reached in finite time.
+
+```{python}
+#| label: fig-step-size
+#| fig-cap: "Loss versus iteration for three learning rates on a 1-D quadratic $J(w) = w^2$. A well-chosen rate converges smoothly. Too small a rate makes painfully slow progress. Too large a rate overshoots and diverges."
+#| echo: false
+
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(8, 4))
+
+# 1D quadratic J(w) = w^2; gradient = 2w; update: w <- w - eta * 2w
+w0 = 3.0
+n_steps = 40
+iters = np.arange(n_steps + 1)
+
+def run_gd(eta, w_init=w0, n=n_steps):
+    w = w_init
+    losses = [w**2]
+    for _ in range(n):
+        w = w - eta * 2 * w
+        losses.append(w**2)
+    return np.array(losses)
+
+losses_slow = run_gd(0.02)
+losses_good = run_gd(0.35)
+losses_large = run_gd(0.98)
+
+ax.plot(iters, losses_slow, color='#7aaedc', linestyle='--', lw=1.8, label='Too small ($\\eta=0.02$)')
+ax.plot(iters, losses_good, color='#1a3a5c', linestyle='-',  lw=2.0, label='Good ($\\eta=0.35$)')
+ax.plot(iters, np.clip(losses_large, 0, 80), color='#c44e4e', linestyle='--', lw=1.8,
+        label='Too large ($\\eta=0.98$)')
+
+ax.set_xlabel('Iteration', fontsize=11)
+ax.set_ylabel('Loss $J(w)$', fontsize=11)
+ax.set_title('Step size sensitivity on a 1-D quadratic', fontsize=12)
+ax.legend(fontsize=9)
+ax.set_xlim(0, n_steps)
+ax.set_ylim(-1, 55)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
 
 ## Convex and nonconvex problems
 
@@ -184,6 +319,55 @@ algorithm away from shallow traps or narrow pathological regions.
 So stochasticity here is not mere sloppiness. It is a computational strategy
 that changes the character of the optimisation process.
 
+```{python}
+#| label: fig-sgd-vs-gd
+#| fig-cap: "Left: full-gradient descent traces a smooth, direct path to the minimum of $L(w_1, w_2) = w_1^2 + 3w_2^2$. Right: stochastic gradient descent follows a jagged, noisy trajectory but still converges to the same neighbourhood, often using far fewer full-dataset evaluations."
+#| echo: false
+
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(42)
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+w1 = np.linspace(-3.5, 3.5, 300)
+w2 = np.linspace(-3.5, 3.5, 300)
+W1, W2 = np.meshgrid(w1, w2)
+L = W1**2 + 3 * W2**2
+
+levels = np.linspace(0.2, 15, 20)
+
+for ax, title, noisy in zip(axes, ['Full gradient descent', 'Stochastic gradient descent'], [False, True]):
+    ax.contour(W1, W2, L, levels=levels, colors='#4e8ac4', linewidths=0.7, alpha=0.8)
+
+    eta = 0.15
+    pt = np.array([3.0, 2.5])
+    traj = [pt.copy()]
+    n_steps = 35
+    for _ in range(n_steps):
+        grad = np.array([2 * pt[0], 6 * pt[1]])
+        if noisy:
+            grad = grad + rng.normal(scale=0.9, size=2)
+        pt = pt - eta * grad
+        traj.append(pt.copy())
+    traj = np.array(traj)
+
+    ax.plot(traj[:, 0], traj[:, 1], color='#c44e4e', lw=1.3, zorder=3, alpha=0.9)
+    ax.scatter(traj[0, 0], traj[0, 1], s=55, color='#c44e4e', zorder=5, marker='o', label='Start')
+    ax.scatter([0], [0], s=65, color='#2a6099', zorder=5, marker='*', label='Minimum')
+    ax.set_title(title, fontsize=11)
+    ax.set_xlabel('$w_1$')
+    ax.set_ylabel('$w_2$')
+    ax.legend(fontsize=8, loc='upper right')
+    ax.set_xlim(-3.5, 3.5)
+    ax.set_ylim(-3.5, 3.5)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Regularisation changes the landscape
 
 Earlier we described regularisation as disciplined simplification. From the
@@ -202,6 +386,52 @@ This changes what counts as a desirable solution. A parameter setting that fits
 the training data slightly better may nevertheless be rejected if it is too
 complex or unstable. In geometric language, regularisation alters the landscape.
 In modelling language, it encodes caution.
+
+```{python}
+#| label: fig-regularisation-landscape
+#| fig-cap: "Left: the unregularised loss $J(w_1, w_2) = 0.2w_1^2 + 3w_2^2$ has elongated, poorly conditioned contours — gradient descent zig-zags along the narrow valley. Right: adding L2 regularisation $\\lambda(w_1^2 + w_2^2)$ with $\\lambda=1$ rounds the contours and shifts the minimum toward the origin, improving conditioning."
+#| echo: false
+
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+w1 = np.linspace(-4, 4, 300)
+w2 = np.linspace(-4, 4, 300)
+W1, W2 = np.meshgrid(w1, w2)
+
+# Unregularised: elongated in w1 direction
+lam = 0.0
+L_unreg = 0.2 * W1**2 + 3 * W2**2
+
+# Regularised: l2 added
+lam_reg = 1.0
+L_reg = 0.2 * W1**2 + 3 * W2**2 + lam_reg * (W1**2 + W2**2)
+# = (0.2 + 1)*w1^2 + (3+1)*w2^2 = 1.2*w1^2 + 4*w2^2
+
+for ax, L, title, min_pt in zip(
+    axes,
+    [L_unreg, L_reg],
+    ['Without regularisation', 'With L2 regularisation ($\\lambda=1$)'],
+    [[0.0, 0.0], [0.0, 0.0]]
+):
+    levels = np.linspace(0.15, 14, 20)
+    ax.contour(W1, W2, L, levels=levels, colors='#4e8ac4', linewidths=0.8, alpha=0.85)
+    ax.scatter(min_pt[0], min_pt[1], s=80, color='#2a6099', zorder=5, marker='*', label='Minimum')
+    ax.set_title(title, fontsize=11)
+    ax.set_xlabel('$w_1$')
+    ax.set_ylabel('$w_2$')
+    ax.legend(fontsize=8, loc='upper right')
+    ax.set_xlim(-4, 4)
+    ax.set_ylim(-4, 4)
+    ax.set_aspect('equal')
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
 
 ## Optimisation is not the same as generalisation
 
@@ -259,6 +489,88 @@ The geometry becomes strongly nonconvex. Minibatch methods become the practical
 default. Conditioning and scaling become more important.
 
 The mathematics has not been abandoned. It has become more demanding.
+
+## Interactive: gradient descent on a 2D loss landscape
+
+::: {.callout-tip}
+## What to try
+
+Change `LEARNING_RATE` to see how step size affects the descent path — try
+values between `0.05` and `0.95`. Increase `N_STEPS` to watch longer
+trajectories. Set `MOMENTUM` to `0.85` to see how momentum smooths the path
+and accelerates convergence in poorly conditioned landscapes.
+:::
+
+::: {.pyodide-cell}
+```python
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import io, base64
+
+# --- Try changing these parameters ---
+LEARNING_RATE = 0.25   # step size eta (try 0.05, 0.25, 0.85)
+N_STEPS       = 30     # number of gradient descent iterations
+MOMENTUM      = 0.0    # momentum coefficient (0 = plain GD; try 0.85)
+
+# Loss: L(w1, w2) = w1^2 + 4*w2^2  (convex bowl, poorly conditioned)
+def loss(w):
+    return w[0]**2 + 4 * w[1]**2
+
+def grad(w):
+    return np.array([2 * w[0], 8 * w[1]])
+
+# Run gradient descent with optional momentum
+w = np.array([2.8, 2.2])
+velocity = np.zeros(2)
+traj = [w.copy()]
+losses = [loss(w)]
+
+for _ in range(N_STEPS):
+    g = grad(w)
+    velocity = MOMENTUM * velocity - LEARNING_RATE * g
+    w = w + velocity
+    traj.append(w.copy())
+    losses.append(loss(w))
+
+traj = np.array(traj)
+
+# --- Plot ---
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+# Left: contour + path
+w1v = np.linspace(-3.5, 3.5, 300)
+w2v = np.linspace(-3.5, 3.5, 300)
+W1, W2 = np.meshgrid(w1v, w2v)
+L = W1**2 + 4 * W2**2
+
+ax = axes[0]
+levels = np.linspace(0.2, 16, 22)
+ax.contour(W1, W2, L, levels=levels, colors='#4e8ac4', linewidths=0.7, alpha=0.8)
+ax.plot(traj[:, 0], traj[:, 1], color='#c44e4e', lw=1.5, zorder=3)
+ax.scatter(traj[0, 0], traj[0, 1], s=55, color='#c44e4e', zorder=5, marker='o', label='Start')
+ax.scatter([0], [0], s=65, color='#2a6099', zorder=5, marker='*', label='Minimum')
+ax.set_title(f'Descent path  ($\\eta={LEARNING_RATE}$, mom={MOMENTUM})', fontsize=10)
+ax.set_xlabel('$w_1$'); ax.set_ylabel('$w_2$')
+ax.legend(fontsize=8); ax.set_xlim(-3.5, 3.5); ax.set_ylim(-3.5, 3.5)
+
+# Right: loss vs iteration
+ax2 = axes[1]
+ax2.plot(range(N_STEPS + 1), losses, color='#1a3a5c', lw=2.0)
+ax2.set_xlabel('Iteration'); ax2.set_ylabel('Loss $J(w)$')
+ax2.set_title('Loss vs iteration', fontsize=10)
+ax2.set_xlim(0, N_STEPS)
+
+fig.tight_layout(pad=2.0)
+
+buf = io.BytesIO()
+fig.savefig(buf, format='png', dpi=96, bbox_inches='tight')
+buf.seek(0)
+img_b64 = base64.b64encode(buf.read()).decode()
+print(f'<img src="data:image/png;base64,{img_b64}" style="max-width:100%">')
+```
+:::
 
 ## Looking ahead
 

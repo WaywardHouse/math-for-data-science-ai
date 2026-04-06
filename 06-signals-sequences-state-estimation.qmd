@@ -69,6 +69,67 @@ In data science terms, filtering is a way of shaping information before or
 during inference. In AI terms, convolution becomes a learned pattern detector in
 time or space.
 
+A moving-average filter of window $w$ replaces each sample $x_t$ with
+
+$$
+y_t = \frac{1}{w} \sum_{k=0}^{w-1} x_{t-k},
+$$
+
+a convolution of the signal with a rectangular kernel. A Gaussian filter uses a
+bell-shaped kernel, giving a smoother result with less ringing.
+
+```{python}
+#| echo: false
+#| label: fig-signal-filter
+#| fig-cap: "Left: a noisy time series (sine wave plus Gaussian noise). Right: the same signal after a moving-average filter (window = 5, blue) and a Gaussian filter (orange). Both filters reduce noise but the Gaussian is smoother at the edges."
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter1d
+
+rng = np.random.default_rng(3)
+
+t = np.linspace(0, 4 * np.pi, 300)
+clean = np.sin(t)
+noise_level = 0.6
+noisy = clean + rng.normal(0, noise_level, len(t))
+
+# Moving average
+window = 5
+ma = np.convolve(noisy, np.ones(window) / window, mode='same')
+
+# Gaussian filter
+gauss = gaussian_filter1d(noisy, sigma=3)
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+ax = axes[0]
+ax.plot(t, noisy, color='#c44e4e', lw=1, alpha=0.8, label='Noisy signal')
+ax.plot(t, clean, color='#333333', lw=1.5, linestyle='--', alpha=0.5,
+        label='True signal')
+ax.set_xlabel('Time')
+ax.set_ylabel('Amplitude')
+ax.set_title('Noisy time series')
+ax.legend(fontsize=8)
+
+ax = axes[1]
+ax.plot(t, noisy, color='#c44e4e', lw=0.8, alpha=0.4, label='Noisy')
+ax.plot(t, ma, color='#4e8ac4', lw=2, label=f'Moving average (w={window})')
+ax.plot(t, gauss, color='#c5a44e', lw=2, label='Gaussian filter')
+ax.set_xlabel('Time')
+ax.set_ylabel('Amplitude')
+ax.set_title('Filtered signals')
+ax.legend(fontsize=8)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
+Both filters suppress the high-frequency noise, but they differ in character.
+The moving average is a sharp rectangular kernel in time, which can introduce
+edge artefacts. The Gaussian kernel tapers smoothly, trading some time resolution
+for cleaner suppression of high-frequency content.
+
 ## Frequency viewpoints
 
 The Fourier viewpoint teaches that a signal can often be understood not only in
@@ -84,6 +145,70 @@ of behaviour carries most of the meaningful variation.
 The general lesson matches earlier chapters: a good representation makes
 structure visible.
 
+For a discrete signal $x_0, x_1, \ldots, x_{N-1}$, the Discrete Fourier
+Transform (DFT) is
+
+$$
+X_k = \sum_{n=0}^{N-1} x_n \, e^{-2\pi i k n / N}, \qquad k = 0, 1, \ldots, N-1.
+$$
+
+Each coefficient $X_k$ measures how much of the frequency $k/N$ (cycles per
+sample) is present in the signal. The magnitude $|X_k|$ is the spectrum.
+
+```{python}
+#| echo: false
+#| label: fig-frequency-domain
+#| fig-cap: "Left: a time-domain signal composed of two pure sine waves at 3 Hz and 7 Hz. Right: the one-sided magnitude spectrum from the DFT, with clear peaks at exactly 3 and 7 Hz. The two frequency components that are entangled in the time domain are immediately separated in the frequency domain."
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+fs = 200        # sampling frequency (Hz)
+T  = 2.0        # duration (s)
+t  = np.arange(0, T, 1/fs)
+
+f1, f2 = 3.0, 7.0
+signal = np.sin(2 * np.pi * f1 * t) + 0.7 * np.sin(2 * np.pi * f2 * t)
+
+N = len(t)
+fft_vals = np.fft.fft(signal)
+freqs    = np.fft.fftfreq(N, d=1/fs)
+
+# One-sided spectrum
+pos_mask = freqs >= 0
+freqs_pos = freqs[pos_mask]
+mag_pos   = (2 / N) * np.abs(fft_vals[pos_mask])
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+ax = axes[0]
+ax.plot(t[:200], signal[:200], color='#4e8ac4', lw=1.5)
+ax.set_xlabel('Time (s)')
+ax.set_ylabel('Amplitude')
+ax.set_title('Time-domain signal\n(3 Hz + 7 Hz)')
+
+ax = axes[1]
+ax.plot(freqs_pos[freqs_pos <= 20], mag_pos[freqs_pos <= 20],
+        color='#c44e4e', lw=2)
+ax.axvline(f1, color='#c5a44e', lw=1.2, linestyle='--', alpha=0.8,
+           label=f'{f1} Hz')
+ax.axvline(f2, color='#4e8ac4', lw=1.2, linestyle='--', alpha=0.8,
+           label=f'{f2} Hz')
+ax.set_xlabel('Frequency (Hz)')
+ax.set_ylabel('Magnitude')
+ax.set_title('Frequency-domain (DFT magnitude)')
+ax.legend(fontsize=8)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
+The frequency-domain view immediately reveals the two-component structure that
+is much harder to read from the oscillating time-domain trace. This visibility
+is why signal processing and data compression alike work in frequency
+representations: energy tends to concentrate in a small number of coefficients,
+and noise is often spread broadly across all frequencies.
+
 ## Autoregression and lagged structure
 
 One of the simplest temporal models assumes that the present depends on recent
@@ -98,10 +223,82 @@ This also clarifies why random shuffling is often inappropriate in temporal
 problems. The order is not incidental; it is part of the data-generating
 structure.
 
+An AR(1) model for a zero-mean series is simply
+
+$$
+x_t = \phi \, x_{t-1} + \varepsilon_t, \qquad \varepsilon_t \sim \mathcal{N}(0,\, \sigma^2).
+$$
+
+The coefficient $\phi$ controls persistence: values near 1 produce smooth,
+slowly-varying series; values near 0 produce series that look almost like white
+noise. The autocorrelation function (ACF) measures this memory directly —
+$\mathrm{ACF}(\phi, h) = \phi^h$ for lag $h$ in an AR(1) model, decaying
+geometrically.
+
+```{python}
+#| echo: false
+#| label: fig-autoregression
+#| fig-cap: "Left: AR(1) realisations with coefficient φ = 0.9 (persistent, slowly varying) and φ = 0.3 (noisy, rapidly decorrelating). Right: autocorrelation functions for each series. The high-φ series retains correlation across many lags; the low-φ series drops to near zero after lag 1."
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(11)
+
+def ar1(phi, n=200, sigma=1.0):
+    x = np.zeros(n)
+    for t in range(1, n):
+        x[t] = phi * x[t-1] + rng.normal(0, sigma)
+    return x
+
+def acf(x, max_lag=30):
+    x = x - x.mean()
+    var = np.var(x)
+    lags = np.arange(0, max_lag + 1)
+    correlations = np.array([
+        np.mean(x[:len(x)-lag] * x[lag:]) / var if lag > 0
+        else 1.0
+        for lag in lags
+    ])
+    return lags, correlations
+
+phi_high = 0.9
+phi_low  = 0.3
+x_high = ar1(phi_high)
+x_low  = ar1(phi_low)
+
+lags_h, acf_h = acf(x_high)
+lags_l, acf_l = acf(x_low)
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+ax = axes[0]
+ax.plot(x_high, color='#4e8ac4', lw=1.5, label=f'φ = {phi_high} (persistent)')
+ax.plot(x_low,  color='#c44e4e', lw=1.2, alpha=0.8, label=f'φ = {phi_low} (noisy)')
+ax.set_xlabel('Time step')
+ax.set_ylabel('Value')
+ax.set_title('AR(1) realisations')
+ax.legend(fontsize=8)
+
+ax = axes[1]
+ax.bar(lags_h - 0.2, acf_h, width=0.4, color='#4e8ac4', alpha=0.8,
+       label=f'φ = {phi_high}')
+ax.bar(lags_l + 0.2, acf_l, width=0.4, color='#c44e4e', alpha=0.8,
+       label=f'φ = {phi_low}')
+ax.axhline(0, color='black', lw=0.8)
+ax.set_xlabel('Lag')
+ax.set_ylabel('Autocorrelation')
+ax.set_title('Autocorrelation function (ACF)')
+ax.legend(fontsize=8)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## State-space thinking
 
 Many systems are governed by hidden state. We do not observe the full condition
-of the system directly, but we do observe outputs influenced by it.
+of the system directly, but we do observe outputs influenced by it [@bishop2006].
 
 A state-space model separates two ideas:
 
@@ -145,6 +342,80 @@ real-time inference possible. The logic is especially clear in filtering:
 The philosophy should feel familiar by now. It is Bayesian in spirit, even when
 expressed in engineering language: hold a belief, encounter evidence, revise.
 
+For a scalar linear-Gaussian system the Kalman filter implements this recursion
+exactly. The state equation and observation equation are
+
+$$
+x_t = x_{t-1} + w_t, \qquad w_t \sim \mathcal{N}(0, Q),
+$$
+$$
+z_t = x_t + v_t, \qquad v_t \sim \mathcal{N}(0, R).
+$$
+
+The predict step advances the estimate and its variance; the update step
+incorporates the new observation via the Kalman gain [@murphy2022]:
+
+$$
+K_t = \frac{P_{t|t-1}}{P_{t|t-1} + R}, \qquad
+\hat{x}_{t|t} = \hat{x}_{t|t-1} + K_t (z_t - \hat{x}_{t|t-1}).
+$$
+
+```{python}
+#| echo: false
+#| label: fig-kalman-filter
+#| fig-cap: "A scalar Kalman filter tracking a sinusoidal latent state. The true state (dashed orange) is observed only through noisy measurements (grey dots). The Kalman-filtered estimate (solid red) tracks the true state closely, suppressing observation noise while following genuine dynamics."
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(17)
+
+N = 120
+t = np.arange(N)
+true_state = np.sin(2 * np.pi * t / 40)   # sinusoidal latent state
+
+Q = 0.01    # process noise variance
+R = 0.5     # observation noise variance
+
+obs = true_state + rng.normal(0, np.sqrt(R), N)
+
+# Scalar Kalman filter (numpy only)
+x_hat = np.zeros(N)
+P = np.zeros(N)
+P[0] = 1.0
+x_hat[0] = obs[0]
+
+for i in range(1, N):
+    # Predict
+    x_pred = x_hat[i-1]
+    P_pred = P[i-1] + Q
+    # Update
+    K = P_pred / (P_pred + R)
+    x_hat[i] = x_pred + K * (obs[i] - x_pred)
+    P[i] = (1 - K) * P_pred
+
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.scatter(t, obs, color='#aaaaaa', s=12, zorder=2, alpha=0.7, label='Observations')
+ax.plot(t, true_state, color='#c5a44e', lw=2, linestyle='--', zorder=4,
+        label='True latent state')
+ax.plot(t, x_hat, color='#c44e4e', lw=2, zorder=5, label='Kalman estimate')
+
+fig.tight_layout(pad=2.0)
+ax.set_xlabel('Time step')
+ax.set_ylabel('State value')
+ax.set_title('Scalar Kalman filter')
+ax.legend(fontsize=9)
+
+plt.show()
+```
+
+The Kalman gain $K_t$ balances trust in the prediction against trust in the
+observation. When $R$ is large (noisy sensors) the filter leans on the dynamic
+model; when $Q$ is large (unpredictable dynamics) the filter leans on fresh
+observations. The figure shows the filter tracking a smooth sinusoid through
+substantial noise — the estimate is never perfectly accurate, but it is
+systematically better than the raw measurements.
+
 ## Forecasting versus filtering
 
 It helps to distinguish two common temporal tasks.
@@ -185,6 +456,80 @@ much more:
 
 This is a good example of why temporal modelling belongs naturally beside machine
 learning rather than outside it.
+
+## Interactive: signal filtering explorer
+
+The cell below lets you adjust the noise level, signal frequency, and filter
+window. Watch how a wider moving-average window removes more noise but blurs the
+underlying oscillation.
+
+::: {.callout-tip}
+## What to try
+
+- Increase `NOISE_LEVEL` to 2.0 and raise `FILTER_WINDOW` until the signal
+  re-emerges — notice the phase lag.
+- Set `SIGNAL_FREQ` to 0.5 (slow wave) and try a very small window (2). Then set
+  `SIGNAL_FREQ` to 3.0 (fast wave) with the same window and compare.
+- Set `FILTER_WINDOW` to 1 to recover the raw noisy signal.
+:::
+
+::: {.pyodide-cell}
+```python
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import io, base64
+
+# --- Try changing these parameters ---
+FILTER_WINDOW = 7       # integer 1–20
+NOISE_LEVEL   = 0.5     # standard deviation of added noise
+SIGNAL_FREQ   = 1.0     # frequency of the underlying sine wave (Hz)
+
+# Clamp
+FILTER_WINDOW = max(1, min(int(FILTER_WINDOW), 20))
+NOISE_LEVEL   = max(0.0, float(NOISE_LEVEL))
+SIGNAL_FREQ   = max(0.1, float(SIGNAL_FREQ))
+
+rng = np.random.default_rng(42)
+t = np.linspace(0, 4 * np.pi / SIGNAL_FREQ, 400)
+clean = np.sin(2 * np.pi * SIGNAL_FREQ * t / (2 * np.pi))
+noisy = clean + rng.normal(0, NOISE_LEVEL, len(t))
+
+kernel = np.ones(FILTER_WINDOW) / FILTER_WINDOW
+filtered = np.convolve(noisy, kernel, mode='same')
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+ax = axes[0]
+ax.plot(t, noisy, color='#c44e4e', lw=1, alpha=0.7, label='Noisy signal')
+ax.plot(t, clean, color='#333333', lw=1.5, linestyle='--', alpha=0.6,
+        label='True signal')
+ax.set_title('Original noisy signal')
+ax.set_xlabel('Time')
+ax.set_ylabel('Amplitude')
+ax.legend(fontsize=8)
+
+ax = axes[1]
+ax.plot(t, noisy, color='#c44e4e', lw=0.8, alpha=0.3, label='Noisy')
+ax.plot(t, filtered, color='#4e8ac4', lw=2,
+        label=f'Moving avg (w={FILTER_WINDOW})')
+ax.plot(t, clean, color='#333333', lw=1.5, linestyle='--', alpha=0.6,
+        label='True signal')
+ax.set_title(f'After filtering  (noise={NOISE_LEVEL:.1f})')
+ax.set_xlabel('Time')
+ax.set_ylabel('Amplitude')
+ax.legend(fontsize=8)
+
+fig.tight_layout(pad=2.0)
+
+buf = io.BytesIO()
+fig.savefig(buf, format='png', dpi=96, bbox_inches='tight')
+buf.seek(0)
+img_b64 = base64.b64encode(buf.read()).decode()
+print(f'<img src="data:image/png;base64,{img_b64}" style="max-width:100%">')
+```
+:::
 
 ## Looking ahead
 

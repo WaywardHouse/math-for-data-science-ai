@@ -64,6 +64,69 @@ This is why least squares is not just an algebraic trick. It is a geometric act
 of approximation. The model says, in effect, "among all outputs that can be
 expressed using this representation, choose the closest one."
 
+```{python}
+#| label: fig-projection
+#| fig-cap: "Left: 2D data points projected onto a 1D subspace (line through the origin). Dashed lines show the perpendicular drop from each point to its projection — these are the residuals. Right: the projected values re-expressed on a 1D number line. Projection collapses one dimension of variation while retaining the component aligned with the chosen subspace."
+#| echo: false
+
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(7)
+
+# Generate 2D data correlated along a direction
+n = 22
+angle = np.pi / 5           # direction of the 1D subspace
+d = np.array([np.cos(angle), np.sin(angle)])   # unit direction vector
+
+t = rng.uniform(-2.5, 2.5, n)
+noise = rng.normal(scale=0.55, size=(n, 2))
+X = np.outer(t, d) + noise   # points near the line, with scatter
+
+# Project each point onto d
+proj_scalar = X @ d                   # scalar coordinate along d
+proj_points = np.outer(proj_scalar, d)  # 2D projected points
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+# --- Left: 2D scatter with projection lines ---
+ax = axes[0]
+# Draw the subspace line
+t_line = np.linspace(-3.5, 3.5, 200)
+ax.plot(t_line * d[0], t_line * d[1], color='#2a6099', lw=1.8, zorder=1, label='Subspace')
+
+# Draw projection lines (residuals)
+for i in range(n):
+    ax.plot([X[i, 0], proj_points[i, 0]],
+            [X[i, 1], proj_points[i, 1]],
+            color='#aaaaaa', lw=0.8, linestyle='--', zorder=2)
+
+ax.scatter(X[:, 0], X[:, 1], s=28, color='#c44e4e', zorder=4, label='Data')
+ax.scatter(proj_points[:, 0], proj_points[:, 1], s=28, color='#4e8ac4', zorder=5, label='Projection')
+
+ax.set_xlim(-3.5, 3.5)
+ax.set_ylim(-3.5, 3.5)
+ax.set_aspect('equal')
+ax.set_xlabel('$x_1$'); ax.set_ylabel('$x_2$')
+ax.set_title('Data and projection onto a 1D subspace', fontsize=10)
+ax.legend(fontsize=8, loc='upper left')
+
+# --- Right: projected values on a number line ---
+ax2 = axes[1]
+ax2.axhline(0, color='#2a6099', lw=2.0)
+ax2.scatter(proj_scalar, np.zeros(n), s=35, color='#4e8ac4', zorder=4)
+ax2.set_xlim(-3.5, 3.5)
+ax2.set_ylim(-0.5, 0.5)
+ax2.set_xlabel('Coordinate along subspace direction')
+ax2.set_yticks([])
+ax2.set_title('Projected data on the 1D number line', fontsize=10)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Basis, coordinates, and change of viewpoint
 
 A basis provides coordinates for a space. Different bases describe the same
@@ -95,6 +158,65 @@ PCA matters not because every dataset should be reduced, but because it teaches 
 general lesson: representations can be changed, compressed, and reoriented in
 ways that make structure easier to see.
 
+```{python}
+#| label: fig-pca
+#| fig-cap: "Left: a correlated 2D data cloud with the first principal component (PC1, longer arrow) and second principal component (PC2, shorter arrow) drawn from the centroid. Arrow lengths are proportional to the square root of the explained variance. Right: the same data expressed in PC coordinates — the cloud is now aligned with the axes and the two dimensions are decorrelated."
+#| echo: false
+
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(19)
+
+# Generate correlated 2D data
+n = 80
+cov = np.array([[2.8, 1.9], [1.9, 1.5]])
+X = rng.multivariate_normal([0, 0], cov, n)
+
+# Centre
+mu = X.mean(axis=0)
+Xc = X - mu
+
+# PCA via SVD of centred data
+U, S, Vt = np.linalg.svd(Xc, full_matrices=False)
+# Principal components are rows of Vt; explained std = S / sqrt(n-1)
+explained_std = S / np.sqrt(n - 1)
+# PC coordinates
+Xpc = Xc @ Vt.T
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+# --- Left: original space with PC arrows ---
+ax = axes[0]
+ax.scatter(X[:, 0], X[:, 1], s=18, color='#4e8ac4', alpha=0.7)
+scale = 1.5
+for i, (label, color) in enumerate(zip(['PC1', 'PC2'], ['#c44e4e', '#e08c2a'])):
+    vec = Vt[i] * explained_std[i] * scale
+    ax.annotate('', xy=(mu[0] + vec[0], mu[1] + vec[1]),
+                xytext=(mu[0], mu[1]),
+                arrowprops=dict(arrowstyle='->', color=color, lw=2.2))
+    ax.text(mu[0] + vec[0] * 1.12, mu[1] + vec[1] * 1.12, label,
+            color=color, fontsize=9, fontweight='bold')
+
+ax.set_aspect('equal')
+ax.set_xlabel('$x_1$'); ax.set_ylabel('$x_2$')
+ax.set_title('Original space — PC directions', fontsize=10)
+
+# --- Right: PC coordinate space ---
+ax2 = axes[1]
+ax2.scatter(Xpc[:, 0], Xpc[:, 1], s=18, color='#4e8ac4', alpha=0.7)
+ax2.axhline(0, color='#aaaaaa', lw=0.8, linestyle='--')
+ax2.axvline(0, color='#aaaaaa', lw=0.8, linestyle='--')
+ax2.set_xlabel('PC1'); ax2.set_ylabel('PC2')
+ax2.set_title('PC coordinate space (decorrelated)', fontsize=10)
+ax2.set_aspect('equal')
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Eigenvectors, modes, and structure
 
 Eigenvectors enter naturally when a transformation stretches some directions more
@@ -120,6 +242,54 @@ compressed, the factors may identify a smaller set of governing patterns.
 Factorisation is therefore not only a computational device. It is a structural
 hypothesis about the world.
 
+```{python}
+#| label: fig-low-rank
+#| fig-cap: "SVD truncation on a 20×20 matrix with low-rank structure (rank-4 signal plus noise). Left: the full noisy matrix. Middle: rank-1 approximation — only the dominant pattern survives. Right: rank-3 approximation — three latent structures are recovered while noise is suppressed. The original matrix is $A = U \\Sigma V^\\top$ truncated to $k$ singular values."
+#| echo: false
+
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(31)
+
+# Build a low-rank matrix: rank-4 signal + noise
+m, n_col = 20, 20
+rank_true = 4
+U_true = rng.standard_normal((m, rank_true))
+V_true = rng.standard_normal((n_col, rank_true))
+S_true = np.array([8.0, 5.0, 3.0, 1.5])
+A_clean = (U_true * S_true) @ V_true.T
+noise = rng.standard_normal((m, n_col)) * 0.8
+A = A_clean + noise
+
+# SVD of noisy matrix
+U, S, Vt = np.linalg.svd(A)
+
+def low_rank_approx(k):
+    return (U[:, :k] * S[:k]) @ Vt[:k, :]
+
+A_r1 = low_rank_approx(1)
+A_r3 = low_rank_approx(3)
+
+fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+vmin = A.min(); vmax = A.max()
+
+titles = ['Original matrix', 'Rank-1 approximation', 'Rank-3 approximation']
+mats   = [A, A_r1, A_r3]
+
+for ax, mat, title in zip(axes, mats, titles):
+    im = ax.imshow(mat, cmap='RdBu_r', vmin=vmin, vmax=vmax, aspect='auto')
+    ax.set_title(title, fontsize=10)
+    ax.set_xlabel('Column index')
+    ax.set_ylabel('Row index')
+    plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Embeddings and latent representations
 
 In contemporary AI, the word *embedding* often refers to a learned vector
@@ -135,6 +305,60 @@ This is one reason linear algebra remains central even in systems built from
 deep neural networks. However complex the learning process becomes, useful
 internal representations are still organised in spaces whose geometry matters.
 
+```{python}
+#| label: fig-embedding
+#| fig-cap: "Left: two clusters of 20 points each, embedded in $\\mathbb{R}^3$. The clusters are clearly separated in 3D. Right: the same data projected onto the top two principal components — the cluster structure is preserved in 2D. This illustrates how a lower-dimensional representation can retain meaningful geometry even after discarding one dimension."
+#| echo: false
+
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(55)
+
+# Two clusters in R^3
+n_each = 20
+c1 = rng.multivariate_normal([2, 1, 0.5], np.eye(3) * 0.3, n_each)
+c2 = rng.multivariate_normal([-2, -1, -0.5], np.eye(3) * 0.3, n_each)
+X3 = np.vstack([c1, c2])
+labels = np.array([0]*n_each + [1]*n_each)
+colors = ['#4e8ac4', '#c44e4e']
+
+# PCA to 2D
+Xc3 = X3 - X3.mean(axis=0)
+_, _, Vt = np.linalg.svd(Xc3, full_matrices=False)
+X2 = Xc3 @ Vt[:2].T
+
+fig = plt.figure(figsize=(9, 4))
+
+# --- Left: 3D scatter ---
+ax = fig.add_subplot(1, 2, 1, projection='3d')
+for k, col in enumerate(colors):
+    mask = labels == k
+    ax.scatter(X3[mask, 0], X3[mask, 1], X3[mask, 2],
+               s=28, color=col, alpha=0.85, label=f'Cluster {k+1}')
+ax.set_xlabel('$z_1$', fontsize=8)
+ax.set_ylabel('$z_2$', fontsize=8)
+ax.set_zlabel('$z_3$', fontsize=8)
+ax.set_title('3D representation', fontsize=10)
+ax.legend(fontsize=7, loc='upper left')
+ax.tick_params(labelsize=7)
+
+# --- Right: 2D projection ---
+ax2 = fig.add_subplot(1, 2, 2)
+for k, col in enumerate(colors):
+    mask = labels == k
+    ax2.scatter(X2[mask, 0], X2[mask, 1], s=28, color=col, alpha=0.85,
+                label=f'Cluster {k+1}')
+ax2.set_xlabel('PC1'); ax2.set_ylabel('PC2')
+ax2.set_title('2D projection (top 2 PCs)', fontsize=10)
+ax2.legend(fontsize=8)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Representation is a modelling choice
 
 There is no neutral representation. The choice of variables, scaling, basis, and
@@ -145,6 +369,85 @@ Two models trained on the same raw world can behave very differently if one uses
 a poor representation and the other uses one aligned with the task. This is why
 representation learning is not a decorative add-on. It is one of the central
 problems of AI.
+
+## Interactive: PCA reconstruction
+
+::: {.callout-tip}
+## What to try
+
+Increase `N_COMPONENTS` from 1 to 5 and watch the reconstruction error drop.
+Set `NOISE_LEVEL` to `2.0` and notice how the reconstruction quality degrades
+at low rank. At what number of components does the reconstructed cloud start
+to match the original shape convincingly?
+:::
+
+::: {.pyodide-cell}
+```python
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import io, base64
+
+# --- Try changing these parameters ---
+N_COMPONENTS = 2    # number of PCs to keep (1–5)
+NOISE_LEVEL  = 0.6  # noise added to the synthetic data
+
+rng = np.random.default_rng(42)
+
+# Synthetic dataset: 150 points near a 2D structure embedded in 5D
+n = 150
+true_dim = 2
+A = rng.standard_normal((5, true_dim))   # hidden 5D basis
+t = rng.standard_normal((n, true_dim))   # latent coordinates
+X_clean = t @ A.T                        # noiseless 5D points
+X = X_clean + rng.standard_normal((n, 5)) * NOISE_LEVEL
+
+# Standardise columns
+X_mean = X.mean(axis=0)
+Xc = X - X_mean
+
+# PCA via SVD
+U, S, Vt = np.linalg.svd(Xc, full_matrices=False)
+n_keep = max(1, min(N_COMPONENTS, 5))
+
+# Encode then decode
+Z = Xc @ Vt[:n_keep].T            # n x n_keep
+X_recon = Z @ Vt[:n_keep] + X_mean  # reconstruct in original space
+
+# Reconstruction error (mean squared)
+error = np.mean((X - X_recon)**2)
+
+# Variance explained
+var_explained = (S[:n_keep]**2).sum() / (S**2).sum() * 100
+
+# --- Plot: first two original dims vs reconstructed ---
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+ax = axes[0]
+ax.scatter(Xc[:, 0], Xc[:, 1], s=15, color='#4e8ac4', alpha=0.7)
+ax.set_title('Original data (dims 1 & 2)', fontsize=10)
+ax.set_xlabel('$x_1$'); ax.set_ylabel('$x_2$')
+
+ax2 = axes[1]
+Xr_c = X_recon - X_mean
+ax2.scatter(Xr_c[:, 0], Xr_c[:, 1], s=15, color='#c44e4e', alpha=0.7)
+ax2.set_title(
+    f'Reconstruction ({n_keep} PC{"s" if n_keep>1 else ""})\n'
+    f'Var explained: {var_explained:.1f}%   MSE: {error:.3f}',
+    fontsize=10
+)
+ax2.set_xlabel('$x_1$'); ax2.set_ylabel('$x_2$')
+
+fig.tight_layout(pad=2.0)
+
+buf = io.BytesIO()
+fig.savefig(buf, format='png', dpi=96, bbox_inches='tight')
+buf.seek(0)
+img_b64 = base64.b64encode(buf.read()).decode()
+print(f'<img src="data:image/png;base64,{img_b64}" style="max-width:100%">')
+```
+:::
 
 ## Looking ahead
 

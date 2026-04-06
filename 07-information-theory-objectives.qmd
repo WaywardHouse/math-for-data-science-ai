@@ -53,6 +53,57 @@ This interpretation has several lives:
 For our purposes, the key lesson is that entropy gives a principled scale for
 discussing uncertainty rather than relying on vague qualitative language alone.
 
+For a Bernoulli random variable with success probability $p$, the entropy takes a
+particularly clean form:
+
+$$
+H(p) = -p \log_2 p - (1-p) \log_2(1-p).
+$$
+
+This curve peaks at $p = 0.5$, where uncertainty is greatest, and falls to zero
+at the extremes where the outcome is certain. The figure below makes this geometry
+visible alongside the raw information content $-\log_2(p)$ for individual events.
+
+```{python}
+#| echo: false
+#| label: fig-bernoulli-entropy
+#| fig-cap: "Left: entropy of a Bernoulli distribution as a function of success probability $p$, peaking at maximum uncertainty when $p=0.5$. Right: Shannon information content $-\\log_2(p)$ for selected probability values — rare events carry far more information than common ones."
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+colour = "#4e8ac4"
+
+# Left panel: entropy curve
+p = np.linspace(1e-9, 1 - 1e-9, 500)
+entropy = -p * np.log2(p) - (1 - p) * np.log2(1 - p)
+
+axes[0].plot(p, entropy, color=colour, linewidth=2)
+axes[0].set_xlabel("$p$")
+axes[0].set_ylabel("$H(p)$ (bits)")
+axes[0].set_title("Entropy of a Bernoulli distribution")
+axes[0].axvline(0.5, color=colour, linestyle="--", linewidth=1, alpha=0.5)
+axes[0].annotate("maximum at $p=0.5$", xy=(0.5, 1.0), xytext=(0.62, 0.82),
+                 arrowprops=dict(arrowstyle="->", color="grey"),
+                 fontsize=9, color="grey")
+axes[0].set_xlim(0, 1)
+axes[0].set_ylim(0, 1.1)
+
+# Right panel: information content bar chart
+p_vals = [0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]
+info = [-np.log2(pv) for pv in p_vals]
+labels = [str(pv) for pv in p_vals]
+
+axes[1].bar(labels, info, color=colour, edgecolor="white", linewidth=0.5)
+axes[1].set_xlabel("Probability $p$")
+axes[1].set_ylabel("$-\\log_2(p)$ (bits)")
+axes[1].set_title("Information content of an event")
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Code length and efficient description
 
 Information theory is not only about abstract uncertainty. It is also about
@@ -108,6 +159,70 @@ comparison, regularisation, and generative modelling.
 The essential intuition is straightforward: if our model distribution is badly
 misaligned with the true structure, that mismatch has an information cost.
 
+For distributions $P$ and $Q$ over the same outcomes, the cross-entropy and KL
+divergence are connected by the identity:
+
+$$
+H(P, Q) = H(P) + D_{\mathrm{KL}}(P \| Q).
+$$
+
+The cross-entropy $H(P,Q)$ is the entropy of $P$ plus the extra cost of using $Q$
+in place of $P$. The figure below illustrates this decomposition concretely.
+
+```{python}
+#| echo: false
+#| label: fig-cross-entropy-kl
+#| fig-cap: "Left: two categorical distributions $P$ (true) and $Q$ (model) over five outcomes. Right: the cross-entropy $H(P,Q)$ decomposed as the entropy $H(P)$ plus the KL divergence $D_{\\mathrm{KL}}(P\\|Q)$, showing the extra descriptive cost imposed by using the wrong distribution."
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+colour_p = "#4e8ac4"
+colour_q = "#c44e4e"
+
+outcomes = ["A", "B", "C", "D", "E"]
+P = np.array([0.40, 0.25, 0.20, 0.10, 0.05])
+Q = np.array([0.10, 0.35, 0.15, 0.25, 0.15])
+
+x = np.arange(len(outcomes))
+width = 0.35
+
+# Left panel: the two distributions
+axes[0].bar(x - width / 2, P, width, label="$P$ (true)", color=colour_p,
+            edgecolor="white")
+axes[0].bar(x + width / 2, Q, width, label="$Q$ (model)", color=colour_q,
+            edgecolor="white")
+axes[0].set_xticks(x)
+axes[0].set_xticklabels(outcomes)
+axes[0].set_xlabel("Outcome")
+axes[0].set_ylabel("Probability")
+axes[0].set_title("True distribution $P$ vs model $Q$")
+axes[0].legend()
+
+# Right panel: decomposition H(P,Q) = H(P) + KL
+H_P = -np.sum(P * np.log2(P))
+KL = np.sum(P * np.log2(P / Q))
+H_PQ = H_P + KL
+
+bar_vals = [H_P, KL]
+bar_labels = ["$H(P)$\n(entropy of $P$)", "$D_{\\mathrm{KL}}(P\\|Q)$\n(mismatch cost)"]
+bar_colours = [colour_p, colour_q]
+
+bars = axes[1].bar(bar_labels, bar_vals, color=bar_colours, edgecolor="white",
+                   width=0.5)
+axes[1].axhline(H_PQ, color="grey", linestyle="--", linewidth=1)
+axes[1].annotate(f"$H(P,Q) = {H_PQ:.2f}$ bits",
+                 xy=(0.5, H_PQ), xycoords=("axes fraction", "data"),
+                 xytext=(0.5, H_PQ + 0.15), ha="center", fontsize=9,
+                 color="grey")
+axes[1].set_ylabel("Bits")
+axes[1].set_title("Cross-entropy decomposition")
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Objectives encode beliefs about error
 
 Earlier chapters stressed that a loss function expresses what kind of mistake
@@ -134,6 +249,80 @@ over one that makes brittle hard decisions unsupported by the evidence.
 This is one reason probabilistic classification fits naturally with uncertainty
 calibration from the previous chapter.
 
+The figure below shows both sides of this point. On the left, the log-loss curve
+$L(p) = -\log(p)$ demonstrates the sharp penalty for confident wrong answers. On
+the right, a loss landscape over a two-dimensional parameter space illustrates
+that the information-theoretic objective creates a genuine geometry for the
+optimiser to navigate.
+
+```{python}
+#| echo: false
+#| label: fig-loss-landscape
+#| fig-cap: "Left: the log-loss $L(p) = -\\log(p)$ for the predicted probability assigned to the true class. Loss increases sharply as predicted probability falls toward zero, strongly penalising confident errors. Right: cross-entropy loss surface over two linear classifier weights for a synthetic binary classification problem."
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(42)
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+colour = "#4e8ac4"
+
+# Left panel: log-loss curve
+p = np.linspace(0.01, 1.0, 400)
+loss = -np.log(p)
+
+axes[0].plot(p, loss, color=colour, linewidth=2)
+axes[0].set_xlabel("Predicted probability $p$ for true class")
+axes[0].set_ylabel("$-\\log(p)$")
+axes[0].set_title("Log-loss vs. predicted probability")
+axes[0].set_xlim(0, 1)
+axes[0].set_ylim(0, 5)
+axes[0].annotate("confident\nwrong answer\n→ huge loss",
+                 xy=(0.05, -np.log(0.05)), xytext=(0.25, 3.8),
+                 arrowprops=dict(arrowstyle="->", color="grey"),
+                 fontsize=8, color="grey", ha="center")
+
+# Right panel: 2D loss landscape
+# Synthetic binary data: two Gaussians in 1D, use two weights for a 2D grid
+n = 60
+X0 = rng.normal([-1.0, 0.5], 0.6, (n, 2))
+X1 = rng.normal([1.0, -0.5], 0.6, (n, 2))
+X = np.vstack([X0, X1])
+y = np.array([0] * n + [1] * n)
+
+w1_vals = np.linspace(-3, 3, 60)
+w2_vals = np.linspace(-3, 3, 60)
+W1, W2 = np.meshgrid(w1_vals, w2_vals)
+Z = np.zeros_like(W1)
+
+def sigmoid(x):
+    return 1.0 / (1.0 + np.exp(-np.clip(x, -30, 30)))
+
+for i in range(W1.shape[0]):
+    for j in range(W1.shape[1]):
+        w = np.array([W1[i, j], W2[i, j]])
+        logits = X @ w
+        probs = sigmoid(logits)
+        probs = np.clip(probs, 1e-9, 1 - 1e-9)
+        Z[i, j] = -np.mean(y * np.log(probs) + (1 - y) * np.log(1 - probs))
+
+cf = axes[1].contourf(W1, W2, Z, levels=20, cmap="Blues")
+fig.colorbar(cf, ax=axes[1], label="Cross-entropy loss")
+axes[1].set_xlabel("$w_1$")
+axes[1].set_ylabel("$w_2$")
+axes[1].set_title("Loss landscape over weight space")
+
+# Mark the minimum
+idx = np.unravel_index(np.argmin(Z), Z.shape)
+axes[1].plot(W1[idx], W2[idx], "o", color="#c44e4e", markersize=6,
+             label="minimum")
+axes[1].legend(fontsize=8)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Compression, communication, and learning
 
 It is worth keeping sight of the broader intellectual landscape. Information
@@ -156,12 +345,59 @@ This example shows why information theory belongs naturally in AI. Language
 modelling, compression, prediction, and uncertainty all meet in the same
 mathematics.
 
+## Interactive exploration
+
+The cell below lets you modify two categorical distributions $P$ and $Q$ directly
+and observe how entropy, cross-entropy, and KL divergence respond. Changing $Q$
+toward $P$ should reduce the KL divergence to zero.
+
+::: {.callout-tip}
+## What to try
+
+- Set `Q_VALUES` equal to `P_VALUES` and confirm that $D_{\mathrm{KL}}(P\|Q) = 0$ and $H(P,Q) = H(P)$.
+- Make one entry of $Q$ very small while the corresponding entry of $P$ is large and watch the KL divergence grow.
+- Try a uniform $P$ (all values $0.2$) and observe that entropy is maximised at $\log_2(5) \approx 2.32$ bits.
+:::
+
+::: {.pyodide-cell}
+```python
+import numpy as np
+
+# --- Try changing these parameters ---
+# Five probabilities that must sum to 1
+P_VALUES = [0.40, 0.25, 0.20, 0.10, 0.05]
+Q_VALUES = [0.10, 0.35, 0.15, 0.25, 0.15]
+
+P = np.array(P_VALUES, dtype=float)
+Q = np.array(Q_VALUES, dtype=float)
+
+# Normalise in case of rounding
+P = P / P.sum()
+Q = Q / Q.sum()
+
+# Entropy H(P)
+H_P = -np.sum(P * np.log2(np.where(P > 0, P, 1)))
+
+# Cross-entropy H(P, Q)
+H_PQ = -np.sum(P * np.log2(np.where(Q > 0, Q, 1e-15)))
+
+# KL divergence D_KL(P || Q)
+kl = np.sum(P * np.log2(np.where((P > 0) & (Q > 0), P / Q, 1e-15) * (P > 0)))
+
+print(f"Entropy H(P)          = {H_P:.4f} bits")
+print(f"Cross-entropy H(P, Q) = {H_PQ:.4f} bits")
+print(f"KL divergence D(P||Q) = {kl:.4f} bits")
+print()
+print(f"Verification: H(P) + KL = {H_P + kl:.4f}  (should equal H(P,Q) = {H_PQ:.4f})")
+```
+:::
+
 ## Looking ahead
 
 The next chapter builds neural networks from composition, gradients, and learned
 representations. Information theory remains in the background there too, because
 many modern network objectives are still based on cross-entropy, divergence, and
-probabilistic prediction.
+probabilistic prediction [@cover2006].
 
 For now, the key ideas to carry forward are:
 

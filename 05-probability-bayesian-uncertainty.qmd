@@ -72,7 +72,7 @@ structure.
 ## Prior, likelihood, and posterior
 
 The Bayesian grammar is especially helpful because it makes the logic of model
-revision explicit.
+revision explicit [@bishop2006].
 
 A prior expresses what is believed before the current data are incorporated. The
 likelihood describes how plausible the observed data are under different
@@ -89,6 +89,73 @@ This should not be read as an abstract slogan only. It is a disciplined answer
 to a practical question: how should we revise our beliefs when new information
 arrives?
 
+To make this concrete, consider a simple coin-flip problem. We observe $k$ heads
+in $n$ trials and want to infer the probability parameter $\theta$. A
+$\mathrm{Beta}(\alpha, \beta)$ prior for $\theta$ is conjugate to the binomial
+likelihood, yielding a $\mathrm{Beta}(\alpha + k,\; \beta + n - k)$ posterior —
+a clean closed-form update.
+
+```{python}
+#| echo: false
+#| label: fig-prior-posterior
+#| fig-cap: "Left: Beta(2,2) prior for the coin-bias parameter θ alongside the binomial likelihood for 7 heads in 10 flips (both normalised to share the same vertical scale). Right: the resulting Beta(9,5) posterior compared with the prior, showing how the data shift and sharpen our beliefs."
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+theta = np.linspace(0, 1, 500)
+
+# Prior: Beta(2,2)
+prior_a, prior_b = 2, 2
+prior = stats.beta(prior_a, prior_b).pdf(theta)
+
+# Likelihood: Binomial(10, theta) for k=7 heads
+k, n = 7, 10
+likelihood = stats.binom.pmf(k, n, theta)
+likelihood_scaled = likelihood / likelihood.max() * prior.max()
+
+# Posterior: Beta(9, 5)
+post_a, post_b = prior_a + k, prior_b + (n - k)
+posterior = stats.beta(post_a, post_b).pdf(theta)
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+# Left panel: prior and likelihood
+ax = axes[0]
+ax.fill_between(theta, prior, alpha=0.25, color='#4e8ac4')
+ax.plot(theta, prior, color='#4e8ac4', lw=2, label=r'Prior $\mathrm{Beta}(2,2)$')
+ax.fill_between(theta, likelihood_scaled, alpha=0.25, color='#c5a44e')
+ax.plot(theta, likelihood_scaled, color='#c5a44e', lw=2,
+        label='Likelihood (7/10, scaled)')
+ax.set_xlabel(r'$\theta$')
+ax.set_ylabel('Density / scaled likelihood')
+ax.set_title('Prior and likelihood')
+ax.legend(fontsize=8)
+
+# Right panel: prior and posterior
+ax = axes[1]
+ax.fill_between(theta, prior, alpha=0.25, color='#4e8ac4')
+ax.plot(theta, prior, color='#4e8ac4', lw=2, label=r'Prior $\mathrm{Beta}(2,2)$')
+ax.fill_between(theta, posterior, alpha=0.25, color='#c44e4e')
+ax.plot(theta, posterior, color='#c44e4e', lw=2,
+        label=r'Posterior $\mathrm{Beta}(9,5)$')
+ax.set_xlabel(r'$\theta$')
+ax.set_ylabel('Density')
+ax.set_title('Prior and posterior')
+ax.legend(fontsize=8)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
+The left panel shows how the prior and likelihood supply complementary
+information: the prior is centred near 0.5, while the data nudge the likelihood
+toward 0.7. The right panel shows the posterior as the synthesis — shifted and
+considerably sharper than the prior. With only ten coin flips the posterior is
+still broad, and a sceptic with a stronger prior would be less convinced; that
+sensitivity to prior choice is a feature, not a bug, of the Bayesian framework.
+
 ## Predictive distributions
 
 In many applications, a single predicted value is not enough. We want a
@@ -102,6 +169,75 @@ shortfall. A weather forecaster may need to express the probability of freezing
 conditions, not only the predicted temperature.
 
 Predictive distributions keep the model aligned with the decision context.
+
+The predictive distribution at a new input $x_*$ in a Gaussian regression model
+takes the form
+
+$$
+p(y_* \mid x_*, \mathbf{X}, \mathbf{y}) = \int p(y_* \mid x_*, \theta)\,
+p(\theta \mid \mathbf{X}, \mathbf{y})\, d\theta,
+$$
+
+where the integral averages the prediction over all plausible parameter values
+weighted by the posterior. The figure below shows what this looks like geometrically.
+
+```{python}
+#| echo: false
+#| label: fig-predictive-dist
+#| fig-cap: "Left: scatter data with a fitted regression mean (solid line) and shaded ±1σ and ±2σ predictive bands, illustrating how uncertainty grows away from the data. Right: the marginal predictive distribution at a single query point x = 2.5, drawn as a Gaussian bell curve."
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+rng = np.random.default_rng(42)
+
+# Generate data
+x_data = np.linspace(-2, 2, 20)
+true_slope, true_intercept = 1.2, 0.5
+sigma = 0.6
+y_data = true_slope * x_data + true_intercept + rng.normal(0, sigma, len(x_data))
+
+# Fit by least squares
+coeffs = np.polyfit(x_data, y_data, 1)
+x_plot = np.linspace(-2.5, 2.5, 300)
+y_mean = np.polyval(coeffs, x_plot)
+
+# Simple predictive uncertainty: constant sigma from residuals
+resid_sigma = np.std(y_data - np.polyval(coeffs, x_data))
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+# Left: regression with bands
+ax = axes[0]
+ax.fill_between(x_plot, y_mean - 2*resid_sigma, y_mean + 2*resid_sigma,
+                alpha=0.15, color='#4e8ac4', label=r'$\pm 2\sigma$')
+ax.fill_between(x_plot, y_mean - resid_sigma, y_mean + resid_sigma,
+                alpha=0.30, color='#4e8ac4', label=r'$\pm 1\sigma$')
+ax.plot(x_plot, y_mean, color='#4e8ac4', lw=2, label='Predictive mean')
+ax.scatter(x_data, y_data, color='#333333', s=25, zorder=4, label='Data')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_title('Predictive distribution')
+ax.legend(fontsize=8)
+
+# Right: marginal at x* = 2.5
+ax = axes[1]
+x_star = 2.5
+y_star_mean = np.polyval(coeffs, x_star)
+y_range = np.linspace(y_star_mean - 4*resid_sigma, y_star_mean + 4*resid_sigma, 400)
+p_y = stats.norm.pdf(y_range, loc=y_star_mean, scale=resid_sigma)
+ax.fill_between(y_range, p_y, alpha=0.30, color='#4e8ac4')
+ax.plot(y_range, p_y, color='#4e8ac4', lw=2)
+ax.axvline(y_star_mean, color='#c44e4e', lw=1.5, linestyle='--', label='Mean')
+ax.set_xlabel(r'$y_*$')
+ax.set_ylabel('Density')
+ax.set_title(r'Marginal predictive at $x_* = 2.5$')
+ax.legend(fontsize=8)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
 
 ## Uncertainty is not only noise
 
@@ -119,11 +255,78 @@ observations.
 A mature treatment of AI does not collapse these into a single vague notion of
 "confidence".
 
+The figure below places both types side by side. In the aleatoric panel the data
+are dense but scatter irreducibly around the fitted line — adding more data would
+not eliminate the band. In the epistemic panel only a handful of points are
+available, and the uncertainty band fans out dramatically in the gaps: the same
+model, faced with sparse evidence, genuinely does not know what happens between
+observations.
+
+```{python}
+#| echo: false
+#| label: fig-aleatoric-epistemic
+#| fig-cap: "Left (aleatoric): many observations, but inherent scatter produces a wide band that cannot be narrowed by collecting more data. Right (epistemic): very few observations; the uncertainty band is narrow near data points but fans out widely in the gaps, reflecting ignorance that could in principle be reduced."
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+rng = np.random.default_rng(7)
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+# --- Aleatoric panel ---
+ax = axes[0]
+x_al = np.linspace(0, 5, 60)
+y_al = 0.8 * x_al + rng.normal(0, 1.1, len(x_al))   # high irreducible noise
+coeffs_al = np.polyfit(x_al, y_al, 1)
+x_plot = np.linspace(0, 5, 300)
+y_fit = np.polyval(coeffs_al, x_plot)
+aleatoric_sigma = 1.1  # fixed, does not depend on x
+
+ax.fill_between(x_plot, y_fit - 2*aleatoric_sigma, y_fit + 2*aleatoric_sigma,
+                alpha=0.15, color='#4e8ac4')
+ax.fill_between(x_plot, y_fit - aleatoric_sigma, y_fit + aleatoric_sigma,
+                alpha=0.28, color='#4e8ac4')
+ax.plot(x_plot, y_fit, color='#4e8ac4', lw=2)
+ax.scatter(x_al, y_al, s=12, color='#555555', alpha=0.6, zorder=4)
+ax.set_title('Aleatoric uncertainty\n(irreducible scatter)')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+
+# --- Epistemic panel ---
+ax = axes[1]
+x_ep = np.array([0.5, 1.8, 3.5, 4.8])               # very few points
+y_ep = 0.8 * x_ep + rng.normal(0, 0.3, len(x_ep))
+coeffs_ep = np.polyfit(x_ep, y_ep, 1)
+y_ep_fit = np.polyval(coeffs_ep, x_plot)
+
+# Epistemic sigma grows with distance from data centre
+x_centre = x_ep.mean()
+epistemic_sigma = 0.15 + 0.5 * (x_plot - x_centre)**2 / (x_plot.max() - x_plot.min())**2 * 4
+
+ax.fill_between(x_plot,
+                y_ep_fit - 2*epistemic_sigma, y_ep_fit + 2*epistemic_sigma,
+                alpha=0.15, color='#c44e4e')
+ax.fill_between(x_plot,
+                y_ep_fit - epistemic_sigma, y_ep_fit + epistemic_sigma,
+                alpha=0.28, color='#c44e4e')
+ax.plot(x_plot, y_ep_fit, color='#c44e4e', lw=2)
+ax.scatter(x_ep, y_ep, s=60, color='#333333', zorder=4)
+ax.set_title('Epistemic uncertainty\n(sparse data)')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Calibration
 
 A probabilistic model can be sharp without being trustworthy, or trustworthy
 without being very informative. Calibration is the idea that stated
-probabilities should match long-run frequencies in an appropriate sense.
+probabilities should match long-run frequencies in an appropriate sense
+[@murphy2022].
 
 If a model repeatedly says events have probability $0.8$, then roughly eight out
 of ten such events should occur over time. When this does not happen, the model
@@ -131,6 +334,52 @@ may still rank cases well, but its uncertainty statements are misleading.
 
 This is why uncertainty is not only about having probabilities. It is about
 having probabilities that deserve to be believed.
+
+A calibration curve plots predicted probability against observed frequency across
+groups of predictions. Perfect calibration falls on the diagonal. Overconfident
+models produce S-shaped curves: they push predicted probabilities toward the
+extremes while actual frequencies remain more moderate. Underconfident models
+have a flatter slope.
+
+```{python}
+#| echo: false
+#| label: fig-calibration
+#| fig-cap: "Calibration plot. A well-calibrated model (blue) lies close to the diagonal. An overconfident model (orange) pushes predictions toward 0 and 1 even when actual frequencies stay near 0.5, producing a characteristic S-shaped curve."
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+p_bins = np.linspace(0.05, 0.95, 10)
+
+# Well-calibrated: actual frequency tracks predicted probability
+actual_well = p_bins + np.array([0.02, -0.01, 0.03, -0.02, 0.01,
+                                 -0.01, 0.02, -0.03, 0.01, 0.02])
+
+# Overconfident: S-shaped — squeezed toward extremes
+actual_overconf = 1 / (1 + np.exp(-8 * (p_bins - 0.5)))
+
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot([0, 1], [0, 1], 'k--', lw=1.5, label='Perfect calibration')
+ax.plot(p_bins, actual_well, 'o-', color='#4e8ac4', lw=2,
+        markersize=6, label='Well-calibrated model')
+ax.plot(p_bins, actual_overconf, 's-', color='#c5a44e', lw=2,
+        markersize=6, label='Overconfident model')
+ax.set_xlabel('Predicted probability')
+ax.set_ylabel('Observed frequency')
+ax.set_title('Calibration curves')
+ax.set_xlim(0, 1)
+ax.set_ylim(0, 1)
+ax.legend(fontsize=9)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
+The overconfident model's curve bows away from the diagonal: at a predicted
+probability of 0.8 the actual frequency might be only 0.6. A decision-maker who
+takes those probabilities at face value would systematically misjudge risk.
+Calibration is therefore not merely a technical quality measure — it is a
+condition for probabilities to be actionable.
 
 ## Bayesian updating as model revision
 
@@ -153,6 +402,90 @@ measurement error.
 The second description is often more useful. Reservoir operation, flood warning,
 and drought planning depend not only on what is most likely, but on what is
 plausibly possible.
+
+## Interactive: Bayesian coin updating
+
+The cell below lets you explore how prior choice and observed data interact to
+shape the posterior. Try a strong prior (high $\alpha$ and $\beta$) with only a
+few observations and watch how little the data move the posterior. Then try a
+weak prior with many observations and notice how the data dominate.
+
+::: {.callout-tip}
+## What to try
+
+- Set `PRIOR_ALPHA = PRIOR_BETA = 1` (uniform prior) and see how the posterior
+  is determined entirely by the data.
+- Set `PRIOR_ALPHA = PRIOR_BETA = 20` (strong prior near 0.5) and increase
+  `N_TRIALS` to see how many flips are needed to move the posterior.
+- Set `N_HEADS = N_TRIALS` (all heads) with a Beta(2,2) prior and observe the
+  posterior never reaches $\theta = 1$.
+:::
+
+::: {.pyodide-cell}
+```python
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from scipy import stats
+import io, base64
+
+# --- Try changing these parameters ---
+PRIOR_ALPHA = 2      # Beta prior alpha (> 0)
+PRIOR_BETA  = 2      # Beta prior beta  (> 0)
+N_HEADS     = 7      # observed heads
+N_TRIALS    = 10     # total flips (>= N_HEADS)
+
+# Clamp inputs
+N_TRIALS = max(N_TRIALS, N_HEADS)
+PRIOR_ALPHA = max(PRIOR_ALPHA, 0.1)
+PRIOR_BETA  = max(PRIOR_BETA,  0.1)
+
+theta = np.linspace(0, 1, 500)
+prior = stats.beta(PRIOR_ALPHA, PRIOR_BETA).pdf(theta)
+
+likelihood = stats.binom.pmf(N_HEADS, N_TRIALS, theta)
+likelihood_scaled = likelihood / (likelihood.max() + 1e-12) * prior.max()
+
+post_a = PRIOR_ALPHA + N_HEADS
+post_b = PRIOR_BETA  + (N_TRIALS - N_HEADS)
+posterior = stats.beta(post_a, post_b).pdf(theta)
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+ax = axes[0]
+ax.fill_between(theta, prior, alpha=0.25, color='#4e8ac4')
+ax.plot(theta, prior, color='#4e8ac4', lw=2,
+        label=f'Prior Beta({PRIOR_ALPHA:.1f},{PRIOR_BETA:.1f})')
+ax.fill_between(theta, likelihood_scaled, alpha=0.25, color='#c5a44e')
+ax.plot(theta, likelihood_scaled, color='#c5a44e', lw=2,
+        label=f'Likelihood ({N_HEADS}/{N_TRIALS}, scaled)')
+ax.set_xlabel('θ')
+ax.set_ylabel('Density / scaled likelihood')
+ax.set_title('Prior and likelihood')
+ax.legend(fontsize=8)
+
+ax = axes[1]
+ax.fill_between(theta, prior, alpha=0.20, color='#4e8ac4')
+ax.plot(theta, prior, color='#4e8ac4', lw=2,
+        label=f'Prior Beta({PRIOR_ALPHA:.1f},{PRIOR_BETA:.1f})')
+ax.fill_between(theta, posterior, alpha=0.25, color='#c44e4e')
+ax.plot(theta, posterior, color='#c44e4e', lw=2,
+        label=f'Posterior Beta({post_a:.1f},{post_b:.1f})')
+ax.set_xlabel('θ')
+ax.set_ylabel('Density')
+ax.set_title('Prior vs posterior')
+ax.legend(fontsize=8)
+
+fig.tight_layout(pad=2.0)
+
+buf = io.BytesIO()
+fig.savefig(buf, format='png', dpi=96, bbox_inches='tight')
+buf.seek(0)
+img_b64 = base64.b64encode(buf.read()).decode()
+print(f'<img src="data:image/png;base64,{img_b64}" style="max-width:100%">')
+```
+:::
 
 ## Looking ahead
 

@@ -98,6 +98,58 @@ This distinction matters all the way through machine learning:
 If those roles are mixed up, later ideas such as training, generalisation, and
 regularisation become much harder to read clearly.
 
+The figure below makes the fitting act geometric. The left panel shows a cloud
+of observed data and the true relationship (dotted). The right panel adds the
+fitted line and makes residuals — the gaps between model and data — visible as
+vertical red segments. Fitting is the act of choosing parameters so that those
+red segments are collectively small.
+
+```{python}
+#| fig-cap: "Left: a data cloud with the true underlying relationship (dotted). Right: the fitted line and residuals (red segments) showing what minimising squared error means geometrically."
+#| label: fig-residuals
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(42)
+n = 30
+x = rng.uniform(0, 5, n)
+true_slope = 1.4
+true_intercept = 0.5
+noise = rng.normal(0, 0.9, n)
+y = true_intercept + true_slope * x + noise
+
+x_fit = np.linspace(0, 5, 200)
+
+X = np.column_stack([np.ones(n), x])
+beta = np.linalg.lstsq(X, y, rcond=None)[0]
+b0, b1 = beta
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+ax = axes[0]
+ax.scatter(x, y, color='#4e8ac4', alpha=0.7, zorder=3)
+ax.plot(x_fit, true_intercept + true_slope * x_fit,
+        'k--', linewidth=1.5, label='True relationship')
+ax.set_xlabel('Feature $x$')
+ax.set_ylabel('Target $y$')
+ax.set_title('Data cloud and true relationship')
+ax.legend(fontsize=9)
+
+ax = axes[1]
+y_hat = b0 + b1 * x
+ax.scatter(x, y, color='#4e8ac4', alpha=0.7, zorder=3)
+ax.plot(x_fit, b0 + b1 * x_fit, color='#c44e4e', linewidth=2, label='Fitted line')
+for xi, yi, yhi in zip(x, y, y_hat):
+    ax.plot([xi, xi], [yi, yhi], color='#c44e4e', alpha=0.5, linewidth=1)
+ax.set_xlabel('Feature $x$')
+ax.set_ylabel('Target $y$')
+ax.set_title('Fitted line and residuals')
+ax.legend(fontsize=9)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Supervised and unsupervised tasks
 
 One helpful first classification is by the kind of mathematical problem being
@@ -202,6 +254,43 @@ and false positives often have different consequences.
 The loss function therefore sits at the meeting point of mathematics and
 judgment. It translates purpose into calculation.
 
+The figure below shows what the loss function looks like as a landscape over the
+parameter space of a one-parameter model. We hold all data fixed, vary the slope
+$w$, and plot the mean squared error $L(w) = \frac{1}{n}\sum_i (y_i - w x_i)^2$
+as a smooth curve. The minimum — the parameter value that best fits the data —
+is marked by a dashed vertical line. This is the *objective landscape*, and it
+will reappear throughout the book whenever we discuss optimisation.
+
+```{python}
+#| fig-cap: "The MSE loss as a function of a single slope parameter $w$. The curve is smooth and convex; gradient descent follows its slope toward the minimum."
+#| label: fig-loss-landscape
+import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(7)
+n = 40
+x = rng.uniform(0, 4, n)
+true_w = 1.8
+y = true_w * x + rng.normal(0, 0.7, n)
+
+w_vals = np.linspace(-0.5, 4.0, 300)
+loss = np.array([np.mean((y - w * x) ** 2) for w in w_vals])
+
+w_opt = np.dot(x, y) / np.dot(x, x)
+
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot(w_vals, loss, color='#4e8ac4', linewidth=2.5)
+ax.axvline(w_opt, color='#c44e4e', linestyle='--', linewidth=1.5,
+           label=f'Minimum at $w = {w_opt:.2f}$')
+ax.set_xlabel('Parameter $w$')
+ax.set_ylabel('MSE loss $L(w)$')
+ax.set_title('Objective landscape: loss as a function of slope')
+ax.legend(fontsize=10)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
+
 ## Training, validation, and test
 
 A model that explains the past perfectly may still fail on new cases. This is
@@ -224,6 +313,40 @@ claim about cases not yet seen.
 In the earlier series, this resembles the difference between checking an answer
 against the worked steps you already know and checking whether the method still
 works on a fresh problem. The second test is harder, but it is the honest one.
+
+The figure below shows a typical data split as proportional bands. The exact
+percentages vary by problem size and task, but the structure — a large training
+region, a smaller validation region, and a held-back test region — is standard.
+
+```{python}
+#| fig-cap: "A typical 70/15/15 train-validation-test split shown as proportional bands. The test set is held back until all modelling decisions are finalised."
+#| label: fig-data-split
+import numpy as np
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(8, 3))
+
+splits = [0.70, 0.15, 0.15]
+labels = ['Train (70%)', 'Validation (15%)', 'Test (15%)']
+colours = ['#4e8ac4', '#c5a44e', '#c44e4e']
+
+left = 0.0
+for split, label, colour in zip(splits, labels, colours):
+    ax.barh(0, split, left=left, height=0.5, color=colour, edgecolor='white',
+            linewidth=2)
+    cx = left + split / 2
+    ax.text(cx, 0, label, ha='center', va='center',
+            fontsize=10, color='white', fontweight='bold')
+    left += split
+
+ax.set_xlim(0, 1)
+ax.set_ylim(-0.5, 0.5)
+ax.axis('off')
+ax.set_title('Data split: train / validation / test', pad=12)
+
+fig.tight_layout(pad=2.0)
+plt.show()
+```
 
 ## A first worked example: predicting demand
 
@@ -325,6 +448,74 @@ That move depends on three habits introduced here:
 - write the modelling task explicitly
 - distinguish features, targets, and parameters
 - treat error measures as part of the mathematics, not an afterthought
+
+::: {.callout-tip}
+## What to try
+
+Adjust `TRUE_SLOPE` and `NOISE_LEVEL` to see how the fitted line tracks the
+true relationship as data become noisier. Try `N_POINTS = 20` vs `N_POINTS = 100`
+to see how sample size affects how close the fitted slope comes to the true slope.
+:::
+
+::: {.pyodide-cell}
+```python
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import io, base64
+
+# --- Try changing these parameters ---
+TRUE_SLOPE = 1.5
+NOISE_LEVEL = 0.8
+N_POINTS = 40
+
+rng = np.random.default_rng(0)
+x = rng.uniform(0, 5, N_POINTS)
+y = TRUE_SLOPE * x + rng.normal(0, NOISE_LEVEL, N_POINTS)
+
+X = np.column_stack([np.ones(N_POINTS), x])
+beta = np.linalg.lstsq(X, y, rcond=None)[0]
+b0, b1 = beta
+
+mse = np.mean((y - (b0 + b1 * x)) ** 2)
+
+x_line = np.linspace(0, 5, 200)
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+ax = axes[0]
+ax.scatter(x, y, color='#4e8ac4', alpha=0.7)
+ax.plot(x_line, TRUE_SLOPE * x_line, 'k--', linewidth=1.5, label='True')
+ax.plot(x_line, b0 + b1 * x_line, color='#c44e4e', linewidth=2,
+        label=f'Fitted (slope={b1:.2f})')
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_title('Data and fitted line')
+ax.legend(fontsize=9)
+
+w_vals = np.linspace(max(0, TRUE_SLOPE - 2), TRUE_SLOPE + 2, 300)
+loss_curve = np.array([np.mean((y - w * x) ** 2) for w in w_vals])
+ax2 = axes[1]
+ax2.plot(w_vals, loss_curve, color='#4e8ac4', linewidth=2)
+ax2.axvline(b1, color='#c44e4e', linestyle='--', linewidth=1.5,
+            label=f'Fitted w={b1:.2f}')
+ax2.axvline(TRUE_SLOPE, color='k', linestyle=':', linewidth=1.5,
+            label=f'True w={TRUE_SLOPE}')
+ax2.set_xlabel('Slope $w$')
+ax2.set_ylabel('MSE')
+ax2.set_title(f'Loss landscape  (MSE = {mse:.3f})')
+ax2.legend(fontsize=9)
+
+fig.tight_layout(pad=2.0)
+
+buf = io.BytesIO()
+fig.savefig(buf, format='png', dpi=96, bbox_inches='tight')
+buf.seek(0)
+img_b64 = base64.b64encode(buf.read()).decode()
+print(f'<img src="data:image/png;base64,{img_b64}" style="max-width:100%">')
+```
+:::
 
 ## Exercises and prompts
 

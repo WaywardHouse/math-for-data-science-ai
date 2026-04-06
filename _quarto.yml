@@ -1,12 +1,24 @@
 project:
   type: book
   output-dir: _site
+  resources:
+    - assets/
 
 book:
-  title: "Wayward House Mathematics for Data Science and AI"
-  subtitle: "A follow-on book built on the Grade 7 to university mathematics path"
+  title: "Mathematics for Data Science and AI"
+  subtitle: "The mathematical spine of machine learning — objectives, representations, uncertainty, and learned systems"
   date: last-modified
-  search: true
+  sidebar:
+    tools:
+      - icon: house
+        href: /
+        aria-label: Wayward House home
+      - icon: grid
+        href: /learn/
+        aria-label: Library
+      - icon: github
+        href: https://github.com/WaywardHouse/waywardhouse-data-ai
+        aria-label: Source on GitHub
   chapters:
     - index.qmd
     - prerequisites.qmd
@@ -18,11 +30,23 @@ book:
     - 06-signals-sequences-state-estimation.qmd
     - 07-information-theory-objectives.qmd
     - 08-neural-networks-deep-learning.qmd
+    - 09-exercise-answers.qmd
     - roadmap.qmd
+
+bibliography: references.bib
 
 format:
   html:
-    theme: flatly
+    theme: none
+    css:
+      - _extensions/wayward-book/wayward-book.css
+    include-in-header: _extensions/wayward-book/head.html
     toc: true
     number-sections: true
+    fig-width: 8
+    fig-height: 4
     code-fold: true
+    html-math-method: katex
+
+execute:
+  freeze: auto
