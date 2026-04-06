@@ -31,7 +31,6 @@ book:
     - 07-information-theory-objectives.qmd
     - 08-neural-networks-deep-learning.qmd
     - 09-exercise-answers.qmd
-    - roadmap.qmd
 
 bibliography: references.bib
 
