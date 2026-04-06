@@ -23,7 +23,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Python dependencies
-        run: pip install numpy matplotlib scipy
+        run: pip install numpy matplotlib scipy pyyaml
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
