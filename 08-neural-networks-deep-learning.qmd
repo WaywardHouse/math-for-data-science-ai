@@ -12,6 +12,32 @@ and learned internal representations.
 This chapter therefore treats neural networks not as magic machinery but as a
 systematic extension of ideas already developed in the book.
 
+::: {.callout-note}
+## In this chapter
+
+- Read networks as **composed functions** with learnable parameters.
+- Understand **backpropagation** as the chain rule applied at scale.
+- Use **activation choices** to reason about expressiveness and gradients.
+- Interpret training curves as evidence about **capacity**, **regularisation**, and **data**.
+
+## Guiding examples
+
+- A small network learning a nonlinear boundary (representation + optimisation)
+- Overfitting as “too much flexibility for the available evidence”
+:::
+
+::: {.callout-tip}
+## Running example: Alberta wildfire smoke and station PM2.5
+
+This chapter’s job in the smoke story is to justify deep models *only after*
+baselines are sound:
+
+- Use a small network as a nonlinear sequence model (lags + weather → next-day PM2.5).
+- Track training vs validation to diagnose capacity and data limits.
+- Treat architecture as an inductive bias: what structure are you assuming about
+  time dependence and interactions?
+:::
+
 ## Prerequisite anchors
 
 The strongest backward links are:

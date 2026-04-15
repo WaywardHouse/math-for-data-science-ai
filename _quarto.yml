@@ -21,16 +21,30 @@ book:
         aria-label: Source on GitHub
   chapters:
     - index.qmd
-    - prerequisites.qmd
-    - 01-mathematical-modelling.qmd
-    - 02-statistical-learning.qmd
-    - 03-optimisation-for-ml.qmd
-    - 04-linear-algebra-representations.qmd
-    - 05-probability-bayesian-uncertainty.qmd
-    - 06-signals-sequences-state-estimation.qmd
-    - 07-information-theory-objectives.qmd
-    - 08-neural-networks-deep-learning.qmd
-    - 09-exercise-answers.qmd
+    - part: "Orientation"
+      chapters:
+        - 00-orientation.qmd
+        - prerequisites.qmd
+    - part: "Modelling → Learning"
+      chapters:
+        - 01-mathematical-modelling.qmd
+        - 02-statistical-learning.qmd
+        - 03-optimisation-for-ml.qmd
+    - part: "Representations"
+      chapters:
+        - 04-linear-algebra-representations.qmd
+        - 07-information-theory-objectives.qmd
+        - 08-neural-networks-deep-learning.qmd
+    - part: "Uncertainty and Dynamics"
+      chapters:
+        - 05-probability-bayesian-uncertainty.qmd
+        - 06-signals-sequences-state-estimation.qmd
+    - part: "Synthesis"
+      chapters:
+        - 10-mini-projects-and-pathways.qmd
+        - 11-further-enquiry-playbook.qmd
+        - 12-fire-and-smoke-lab.qmd
+        - 09-exercise-answers.qmd
 
 bibliography: references.bib
 

@@ -18,6 +18,32 @@ rates of change, local approximation, descent, iteration, numerical stability,
 and constrained trade-offs. What is new is the scale and role they acquire in
 learning systems.
 
+::: {.callout-note}
+## In this chapter
+
+- Treat “training” as **minimising an objective** under finite computation.
+- Understand **step size**, **curvature**, and **noise** as the core numerical story.
+- See why **stochastic gradients** behave differently from full-batch gradients.
+- Connect **regularisation** to geometry (penalties reshape the landscape).
+
+## Guiding examples
+
+- Least squares as an objective you can see and optimise
+- Logistic loss as “fit a probability model, then pay for surprise”
+:::
+
+::: {.callout-tip}
+## Running example: Alberta wildfire smoke and station PM2.5
+
+This chapter’s job in the smoke story is to make “training” feel like a real
+numerical process with choices and failure modes:
+
+- Try MAE vs MSE for PM2.5 and notice how peaks are weighted.
+- Try an asymmetric loss if missing a smoke peak is worse than a false alarm.
+- Compare full-batch vs stochastic gradients (noisy but fast updates).
+- Read regularisation as “do not chase measurement noise and rare quirks”.
+:::
+
 ## Prerequisite anchors
 
 The strongest backward links are:

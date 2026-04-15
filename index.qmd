@@ -20,16 +20,39 @@ without pretending the reader appeared fully formed at matrix calculus.
 
 ## Book shape
 
-| Chapter | Title | Core move |
-|---------|-------|-----------|
-| 1 | Mathematical modelling for data and systems | Turn data problems into explicit mathematical objects |
-| 2 | Statistical learning | Move from inference to predictive modelling |
-| 3 | Optimisation for machine learning | Treat fitting as geometry plus computation |
-| 4 | Linear algebra for representations | Treat data as vectors, spaces, projections, and embeddings |
-| 5 | Probability, Bayesian models, and uncertainty | Model belief, noise, and predictive uncertainty honestly |
-| 6 | Signals, sequences, and state estimation | Handle time, memory, filtering, and latent dynamics |
-| 7 | Information theory and learning objectives | Connect entropy, cross-entropy, and divergence to learning |
-| 8 | Neural networks and deep learning mathematics | Build layered models from composition, gradients, and representation learning |
+The book is organised into parts so the heavy topics have room to breathe.
+Between chapters, you are expected to pause, try a few exercises, and build one
+small example that you can carry forward.
+
+| Part | Chapters | Core move |
+|------|----------|-----------|
+| Orientation | *How to Use This Book*, *Prerequisite Map* | Decide how you will read, and where you will go back for foundations |
+| Modelling → Learning | 1–3 | Turn situations into objectives, then turn objectives into learnable rules |
+| Representations | 4, 7, 8 | Treat “learning” as building representations and objectives that make sense |
+| Uncertainty and Dynamics | 5–6 | Handle noise, belief, time, filtering, and latent state |
+| Synthesis | *Mini-Projects and Pathways*, *Exercise Answers* | Reuse the mathematics in coherent mini-projects and prompts |
+
+## Why this structure resembles real programs
+
+Degree programs and applied courses rarely teach “machine learning” as a single
+monolithic thing. They braid multiple strands:
+
+- **mathematics and statistics** (so models are interpretable)
+- **computing and data handling** (so models can be built and checked)
+- **communication and context** (so decisions are accountable)
+- **projects and constraints** (so learning happens in the real world)
+
+For example, MRU’s Data Science planning guide highlights programming,
+databases, data acquisition/processing, visualization, regression/time series,
+and machine learning, alongside broader professional and community context. In a
+different but related way, UAlberta’s CH E 358 frames data analytics in terms of
+process data, regression, dimensionality reduction, classification, deep
+learning, and experimental design — with a lab component.
+
+This book does not try to replicate the whole degree. It provides the
+mathematical *spine* those pathways depend on, and it adds enough modelling
+prose and example structure that the topics feel connected rather than
+assorted.
 
 ## Relationship to the main series
 

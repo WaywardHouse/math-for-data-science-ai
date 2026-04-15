@@ -13,6 +13,32 @@ This chapter supplies one of the missing bridges between classical mathematics
 and modern ML practice. It explains why entropy, cross-entropy, and divergence
 appear so often, and why classification losses look the way they do.
 
+::: {.callout-note}
+## In this chapter
+
+- Measure uncertainty with **entropy** instead of vague language.
+- Interpret **cross-entropy / log loss** as “pay for surprise” in probabilistic prediction.
+- Use **KL divergence** as a distance-like measure between models and reality.
+- Connect objective functions to **coding** and **information** rather than recipe.
+
+## Guiding examples
+
+- Bernoulli entropy (why uncertainty peaks at 50/50)
+- Cross-entropy revealing overconfident wrong predictions
+:::
+
+::: {.callout-tip}
+## Running example: Alberta wildfire smoke and station PM2.5
+
+This chapter’s job in the smoke story is to make classification objectives feel
+inevitable:
+
+- If you issue “smoke-day” probabilities, judge them with **log loss / cross-entropy**.
+- Use information language to explain why “overconfident wrong” is worse than
+  “uncertain but often right”.
+- Connect threshold alerts back to costs: false alarms vs missed events.
+:::
+
 ## Prerequisite anchors
 
 The strongest backward links are:

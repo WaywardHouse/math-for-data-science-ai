@@ -16,6 +16,32 @@ This chapter connects older ideas from sequences, transforms, control, and
 estimation to modern learning tasks such as time-series forecasting, filtering,
 sequence modelling, and latent-state inference.
 
+::: {.callout-note}
+## In this chapter
+
+- Treat time series as **structured sequences**, not shuffled rows.
+- Use **filtering** to separate signal from noise (and admit the trade-offs).
+- Model **memory** (dependence on the past) with simple autoregressive structure.
+- Infer **latent state** when what matters cannot be measured directly.
+
+## Guiding examples
+
+- Smoothing a noisy trace (filtering as convolution)
+- Tracking a hidden process (Kalman-style state estimation)
+:::
+
+::: {.callout-tip}
+## Running example: Alberta wildfire smoke and station PM2.5
+
+This chapter’s job in the smoke story is to treat PM2.5 as a **time process**
+with latent structure:
+
+- Compare filtering (smoothing station noise) with forecasting (predicting future levels).
+- Use a simple state-space viewpoint: observations are noisy; the “true” local
+  air-quality state evolves.
+- Watch for regime shifts: clear-air dynamics behave differently from smoke episodes.
+:::
+
 ## Prerequisite anchors
 
 The strongest backward links are:

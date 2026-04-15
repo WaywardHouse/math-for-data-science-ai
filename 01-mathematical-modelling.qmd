@@ -28,6 +28,38 @@ path. If any part of the discussion feels slippery, the right response is not to
 memorise the new vocabulary but to revisit the underlying ideas of functions,
 sequences, rates of change, and data description.
 
+::: {.callout-note}
+## In this chapter
+
+- Translate a messy situation into a **mathematical object** (function, distribution, system, decision rule).
+- Name the pieces: **features**, **targets**, **parameters**, **states**, and **hidden variables**.
+- Choose what “good” means by making **loss** and **evaluation** explicit.
+- Treat constraints (compute, legality, ethics, safety) as part of the model, not an afterthought.
+
+## Guiding examples
+
+- Forecasting next-day demand (regression with consequences)
+- Classifying cases for action (classification as decision support)
+- Modelling a system with memory (latent state over time)
+:::
+
+::: {.callout-tip}
+## Running example: Alberta wildfire smoke and station PM2.5
+
+This chapter’s job in the smoke story is to make the modelling object explicit.
+If you are building a station-based Alberta-first project, write the first draft
+of a modelling brief now:
+
+- **Target**: next-day (or next-6-hours) PM2.5 at a chosen station.
+- **Features**: lagged PM2.5, weather variables, seasonality, and a simple fire-activity proxy.
+- **Hidden variables**: mixing height, plume injection, upwind sources, and station representativeness.
+- **Loss story**: are smoke peaks worse than ordinary error (asymmetry)?
+- **Evaluation story**: what split is honest for events and seasons?
+
+You will reuse this brief in every later chapter, refining rather than replacing
+it.
+:::
+
 ## Prerequisite anchors
 
 The most important places to point backward are:

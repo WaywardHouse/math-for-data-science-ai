@@ -14,6 +14,31 @@ and inverse thinking. The distinctive move here is to connect those ideas to the
 needs of modern learning systems: uncertainty-aware prediction, probabilistic
 classification, Bayesian updating, and calibration.
 
+::: {.callout-note}
+## In this chapter
+
+- Treat probability as a **modelling language** for partial information.
+- Separate **aleatoric** (noise) from **epistemic** (knowledge) uncertainty.
+- Use **Bayesian updating** as a structured way to revise belief with evidence.
+- Demand **calibration**: probabilities should mean what they claim to mean.
+
+## Guiding examples
+
+- A simple prior → posterior update you can compute by hand
+- Predictive intervals that widen when evidence is thin
+:::
+
+::: {.callout-tip}
+## Running example: Alberta wildfire smoke and station PM2.5
+
+This chapter’s job in the smoke story is to speak honestly about uncertainty:
+
+- Output prediction intervals for next-day PM2.5, not only point forecasts.
+- For smoke alerts, output probabilities and check **calibration**.
+- Distinguish what is noisy in the world (aleatoric) from what you do not know
+  because data are thin or conditions shift (epistemic).
+:::
+
 ## Prerequisite anchors
 
 The strongest backward links are:

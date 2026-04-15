@@ -1,0 +1,9 @@
+jupyter
+nbformat
+ipykernel
+numpy
+pandas
+matplotlib
+requests
+scipy
+tabulate

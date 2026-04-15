@@ -1,0 +1,122 @@
+---
+title: "Mini-Projects and Pathways"
+status: "draft"
+---
+
+The most reliable way to make heavy topics feel less heavy is to give them a
+home. A mini-project provides that home: one dataset, one set of decisions, one
+evaluation story, and one written explanation that can be revised as your
+understanding grows.
+
+This chapter offers two things:
+
+1. A set of mini-project prompts tied to the book’s chapters.
+2. A “degree-shaped” pathway that reflects how programs like MRU’s Data Science
+   major and engineering data-analytics courses tend to braid mathematics, data
+   handling, and communication.
+
+## The degree-shaped pathway (conceptual, not administrative)
+
+Many programs move through a pattern like:
+
+1. **Year 1**: calculus, linear algebra, statistics, and programming basics
+2. **Year 2**: databases, data acquisition/processing, and modelling foundations
+3. **Year 3**: visualization, regression/time series, and domain context
+4. **Year 4**: machine learning + capstone work (often with workplace or
+   community constraints)
+
+This book is deliberately concentrated on the mathematics that becomes most
+important once you reach steps 2–4.
+
+## Mini-project prompts by chapter
+
+Each prompt is designed to be answerable with “small data” you can obtain
+ethically. Use synthetic data when real data are unavailable. The goal is not a
+portfolio piece; the goal is a legible learning loop.
+
+### Chapter 1: Modelling language
+
+- Choose a system you care about (water use, attendance, transit delay, energy,
+  inventory, sensor drift).
+- Write a one-page modelling brief:
+  - features, target, hidden variables
+  - what “error” means in your context
+  - what constraints must be respected (cost, fairness, safety, compute)
+
+### Chapter 2: Learning and generalisation
+
+- Build two predictive rules for the same task:
+  - one simple baseline
+  - one more flexible model family
+- Compare them using a train/test split and at least one alternative (e.g.,
+  cross-validation or a time-aware split).
+- Write a short memo explaining which model you would trust *and why*.
+
+### Chapter 3: Optimisation
+
+- Pick one objective you can write down explicitly (least squares, logistic
+  regression loss, ridge regression).
+- Implement gradient descent with two step-size choices:
+  - one that converges smoothly
+  - one that oscillates or diverges
+- Explain what you learn about “training” as an *algorithm*, not just as a
+  library call.
+
+### Chapter 4: Representations and dimensionality reduction
+
+- Start with a dataset that has at least 10 features (or construct one).
+- Use a dimensionality reduction method (PCA is enough) to create a 2D or 3D
+  representation.
+- Explain what structure becomes visible in the reduced space and what is lost.
+
+### Chapter 5: Uncertainty
+
+- Choose a prediction task where uncertainty matters (weather proxy, demand,
+  risk score, sensor measurement).
+- Produce:
+  - a point prediction
+  - an uncertainty statement (interval, distribution, or calibrated probability)
+- Write down at least two reasons your uncertainty could be miscalibrated.
+
+### Chapter 6: Sequences and latent state
+
+- Take a time series (or simulate one) with noise and a slowly changing trend.
+- Compare:
+  - a smoothing/filtering approach
+  - a model-based state estimation approach (Kalman-style, even in 1D)
+- Interpret the difference between “noise removal” and “state inference”.
+
+### Chapter 7: Information and objectives
+
+- For a classification task, compute and interpret:
+  - accuracy
+  - log loss / cross-entropy
+- Construct a scenario where accuracy looks good but cross-entropy reveals a
+  problem (overconfident wrong predictions is the classic).
+
+### Chapter 8: Deep learning as composition
+
+- Train a small neural network on a simple problem (even synthetic):
+  - XOR-like classification
+  - a nonlinear regression curve
+- Track training and validation behaviour.
+- Explain overfitting in terms of representation capacity and optimisation.
+
+## A process-data variant (for labs and experiments)
+
+If you have access to laboratory-style data (a vibe closer to engineering
+courses such as CH E 358), adapt any prompt by adding:
+
+- a measurement story (what sensors measure, what they miss)
+- a data-quality story (drift, missingness, outliers)
+- a design-of-experiments story (what you can control, what you can randomise)
+
+Doing that turns “machine learning” into “learning under constraints”, which is
+the more honest and transferable skill.
+
+## Next step: practise on free data
+
+If you want a concrete real-world practice track that combines physical and human
+geography with long-running time series and event structure, continue to *Further
+Enquiry Playbook*. It proposes an Alberta-first, station-based wildfire smoke
+project (PM2.5) and several follow-on variants.

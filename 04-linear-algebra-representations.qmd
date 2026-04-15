@@ -14,6 +14,31 @@ manipulation for its own sake. The point is to see how learning systems use
 spaces, projections, factorisations, eigendirections, and embeddings to organise
 information.
 
+::: {.callout-note}
+## In this chapter
+
+- Treat a dataset as a **matrix** and a model as a **subspace** or **mapping**.
+- Read least squares as **projection** (approximation in a chosen representation).
+- Use **PCA/SVD** as a disciplined way to compress without erasing structure.
+- Interpret **embeddings** as geometric representations you can measure and compare.
+
+## Guiding examples
+
+- Dimensionality reduction that makes clusters visible
+- Low-rank structure as “signal + redundancy” rather than magic compression
+:::
+
+::: {.callout-tip}
+## Running example: Alberta wildfire smoke and station PM2.5
+
+This chapter’s job in the smoke story is to handle **many correlated inputs**
+without drowning in them:
+
+- Treat multivariate weather as a matrix and use PCA/SVD to find “regime” directions.
+- Build a lower-dimensional representation you can plot and reason about.
+- Use projection geometry to understand what your model can and cannot express.
+:::
+
 ## Prerequisite anchors
 
 The strongest backward links are:

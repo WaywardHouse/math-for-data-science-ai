@@ -15,6 +15,32 @@ Classical inference often asks whether a parameter exists, whether an effect is
 detectable, or how uncertain an estimate should be. Statistical learning asks,
 with the same mathematical honesty, how to build rules that generalise.
 
+::: {.callout-note}
+## In this chapter
+
+- Distinguish **explaining the sample** from **predicting new cases**.
+- Use **train/test splits** and **cross-validation** as mathematical discipline, not ritual.
+- Compare **regression** and **classification** as different output spaces and loss stories.
+- Read **overfitting** as a mismatch between model flexibility and evidence.
+
+## Guiding examples
+
+- Temperature → sales (regression with generalisation)
+- Spam/not-spam (classification and evaluation)
+:::
+
+::: {.callout-tip}
+## Running example: Alberta wildfire smoke and station PM2.5
+
+This chapter’s job in the smoke story is **generalisation**. Build baselines and
+an evaluation split that cannot cheat:
+
+- Start with a persistence baseline (tomorrow ≈ today) and a seasonal baseline.
+- Use a **time-aware** split, and treat major smoke episodes as coherent events.
+- Compare regression (predict PM2.5) with classification (smoke-day yes/no).
+- Add calibration checks if you output probabilities for smoke alerts.
+:::
+
 ## Prerequisite anchors
 
 The key places to point backward are:

@@ -1,0 +1,127 @@
+---
+title: "How to Use This Book"
+status: "draft"
+---
+
+This book sits in an awkward but valuable place. It is not a “data science
+workflow” guide and it is not a pure mathematics text. It is an attempt to make
+the mathematical centre of modern data science *readable* — and to keep that
+mathematics tied to modelling choices, evidence, and consequences.
+
+If the structure ever feels sparse, the fix is not to add more theorems. The fix
+is to add more *orientation*: why this topic exists, what question it answers,
+what kinds of mistakes it prevents, and what kinds of work it enables.
+
+## What a holistic program includes (and what this book does)
+
+A good undergraduate data science pathway typically mixes:
+
+- programming and data structures
+- databases and data management
+- data acquisition, cleaning, and reproducible workflows
+- visualization and communication
+- statistics, regression, and time-series thinking
+- machine learning and model evaluation
+- ethical and social context
+- applied projects (often work-integrated)
+
+Mount Royal University’s B.Sc. in Data Science is a clear example: students are
+expected to learn programming, databases, data acquisition/processing,
+visualization, regression/time series, machine learning, and professional context
+alongside mathematics and statistics.
+
+This book does **one** job in that larger ecosystem:
+
+> Make the mathematics of learning systems legible enough that you can use it in
+> applied work without treating it as magic.
+
+If you need practical workflow support, treat it as a companion layer:
+
+- version control, notebooks, and reports
+- data validation and provenance
+- experiment tracking
+- deployment and monitoring (MLOps)
+
+Those topics matter, but they are not the central spine here.
+
+## Three reading paths
+
+Not all readers want the same route. Choose a path and accept that you will jump
+around.
+
+### Path A: “Modelling first”
+
+If you want the book to feel like applied mathematics:
+
+1. Chapter 1 (modelling language)
+2. Chapter 2 (generalisation and evaluation)
+3. Chapter 3 (optimisation as an algorithmic idea)
+4. Chapter 4 (representation geometry)
+5. Chapter 5 (uncertainty and prediction)
+
+Then return for dynamics, information, and deep learning.
+
+### Path B: “Engineering/process data”
+
+If you are thinking in terms of sensors, plants, experiments, and operational
+decisions (a vibe closer to UAlberta’s CH E 358 framing):
+
+1. Chapter 1 (what is the system, what is measured, what is hidden?)
+2. Chapter 4 (dimensionality reduction and representation)
+3. Chapter 2 (regression/classification as decision support)
+4. Chapter 6 (time, filtering, latent state)
+5. Chapter 3 (why training is an optimisation problem)
+
+### Path C: “ML/AI mathematics”
+
+If you want the neural network story quickly:
+
+1. Chapter 1 (objectives and losses)
+2. Chapter 3 (gradients, descent, and computation)
+3. Chapter 4 (vectors, projections, embeddings)
+4. Chapter 8 (networks as composed functions)
+5. Chapter 7 (cross-entropy and objective geometry)
+
+Then circle back for uncertainty and time.
+
+## A running set of examples
+
+To keep the mathematics anchored, chapters reuse three kinds of examples:
+
+- **Prediction from tabular data** (demand, risk, yield): good for regression,
+  loss functions, and uncertainty.
+- **Classification as a decision** (spam/fraud/diagnosis): good for evaluation,
+  asymmetry, calibration, and cross-entropy.
+- **Time and latent state** (tracking, filtering, forecasting): good for
+  sequences, estimation, and dynamical models.
+
+When the prose feels thin, ask: *which example would make this section feel
+inevitable?* Then use the mini-project prompts at the end of the book to build
+that example in your own context.
+
+## The running real-world thread: Fire and Smoke (Alberta-first)
+
+Alongside the small illustrative examples, the book carries one consistent
+real-world thread: **Alberta wildfire smoke and station PM2.5**.
+
+Treat it as a living capstone:
+
+- Chapter 1: write the modelling brief (features, target, hidden variables, loss).
+- Chapters 2–7: build disciplined evaluation, uncertainty, and objective choices.
+- Chapter 8: add deep models only once baselines and splits are honest.
+
+This thread is designed to sit beside a companion essay on the main Wayward House
+site (“Fire and Smoke”). The essay can carry more narrative and context; the book
+carries the mathematics and the reusable modelling grammar.
+
+## How to read (actively)
+
+- Treat each chapter’s “prerequisite anchors” as permission to go backwards.
+- Do not aim to memorise notation; aim to recognise *structure*.
+- When a new concept arrives, write down:
+  - what problem it solves
+  - what mistake it prevents
+  - what assumption it quietly makes
+
+That habit is the difference between “knowing formulas” and “having a modelling
+language”.

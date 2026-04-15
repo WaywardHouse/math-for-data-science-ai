@@ -1,0 +1,133 @@
+---
+title: "Further Enquiry Playbook"
+status: "draft"
+---
+
+This book’s main chapters are deliberately “spine first”: they build a small set
+of mathematical ideas that recur across almost everything in modern data work.
+
+Once you have that spine, the best practice is to reuse it across several
+real-world settings. Doing that teaches you what is stable (the mathematics) and
+what is fragile (assumptions, measurement, selection, and evaluation).
+
+This playbook gives you a set of free-data projects with enough structure that
+you can practise without waiting for a perfect dataset or a perfect idea.
+
+## A running case study: Alberta wildfire smoke and station PM2.5
+
+This is a strong “first serious” project because it combines:
+
+- a physical process (fires, transport, mixing, weather)
+- a human system (where people live, how decisions are made)
+- long-running time series (hourly/daily station readings)
+- event structure (smoke episodes)
+- uncertainty (measurement noise, missingness, changing conditions)
+
+For now, keep it **Alberta-first** and **station-based**. That choice keeps the
+problem concrete and reduces spatial complexity until you are ready for it.
+
+### Data you can pull for free
+
+You can build a complete first version with three data streams:
+
+1. **Air quality stations (PM2.5)**  
+   Hourly measurements are ideal; daily aggregates also work.
+2. **Weather**  
+   At minimum: wind speed/direction, temperature, humidity, pressure. Weather is
+   both a confounder and a partial causal driver for transport/mixing.
+3. **Wildfire activity proxy**  
+   A simple proxy is enough at first (e.g., counts of satellite fire “hotspots”
+   in a radius, or a regional indicator for active fire days).
+
+You do not need to start with satellite rasters, chemical transport models, or
+full dispersion simulation. A proxy is the correct level at first.
+
+### A first modelling brief (what you write before you fit)
+
+Write this as a one-page document (and revise it later):
+
+- **Target**: predict next-day (or next-6-hours) PM2.5 at a station.
+- **Features**: lags of PM2.5, wind, temperature, humidity, seasonality terms,
+  day-of-week, and your wildfire proxy.
+- **Hidden variables**: mixing height, plume injection, upwind sources, station
+  representativeness.
+- **Decision framing**: “smoke-day alert” as a classification derived from a
+  PM2.5 threshold, or “risk-of-exceedance” as a probabilistic forecast.
+- **Evaluation**: time-aware split; event-aware evaluation (don’t let a single
+  smoke episode leak across train/test in a naive way).
+
+### What this case teaches in each chapter
+
+- **Chapter 1 (modelling)**: feature/target/state; constraints; what counts as
+  error when smoke peaks matter.
+- **Chapter 2 (learning)**: generalisation under distribution shift (a smoky
+  summer is not “the same distribution” as a clear summer).
+- **Chapter 3 (optimisation)**: objective choice (MAE vs MSE; asymmetric losses);
+  regularisation as “don’t chase noise”.
+- **Chapter 4 (representations)**: compress correlated weather features; learn a
+  representation of “atmospheric regime” from multivariate inputs.
+- **Chapter 5 (uncertainty)**: intervals, calibration, and honest statements
+  about what you do not know.
+- **Chapter 6 (sequences/state)**: filtering vs forecasting; latent “true air
+  quality” vs noisy readings; regime switches during events.
+- **Chapter 7 (information)**: log loss for probabilistic smoke alerts; why
+  overconfident wrong predictions are costly.
+- **Chapter 8 (deep learning)**: sequence models that learn nonlinear temporal
+  dependence (only after baselines are solid).
+
+### A minimum viable build (the “do this first” checklist)
+
+1. Choose 2–4 Alberta stations with long records and different contexts (urban,
+   rural, foothills/prairie).
+2. Create a clean time index; handle missingness explicitly.
+3. Build two baselines:
+   - persistence (tomorrow ≈ today)
+   - seasonal median / day-of-year median
+4. Fit one simple supervised model (linear or regularised linear).
+5. Evaluate with a time split; report error overall *and* on smoke episodes.
+6. Convert to a smoke-alert classifier via threshold; evaluate calibration.
+7. Write a short memo answering: what did the model learn, and what did it
+   mistake for law?
+
+That is enough to make the rest of the book “stick”.
+
+## If you want visuals immediately
+
+If you want to start with a concrete map + time-series picture before you model
+anything, use *Fire and Smoke Lab (Alberta-first)*. It pulls station metadata,
+builds a first PM2.5 series, and makes smoke episodes explicit so later chapters
+can evaluate honestly.
+
+## Second projects (same spine, different worlds)
+
+Once the smoke project works, reuse the same modelling grammar in one of the
+following. Do not chase novelty. Chase transfer.
+
+### River flow and exceedance risk (hydrology + human exposure)
+
+- Long time series with seasonality and events.
+- Natural state-space structure.
+- A clean classification target: exceedance of a threshold.
+
+### Urban heat risk proxy (weather + urban form)
+
+- Station temperature + local context variables.
+- A real “human geography” story emerges as neighbourhood differences.
+- Strong representation-learning and uncertainty themes.
+
+### Transportation reliability (people moving through constrained systems)
+
+- Delay as a time series with event structure (storms, construction, accidents).
+- Clear decision framing: missed connections, unreliable service windows.
+
+## A template you can reuse for any project
+
+Before you fit anything, write answers to:
+
+1. What is the system? What is measured? What is hidden?
+2. What is the decision? What is the loss story?
+3. What split is honest for this world (time, space, group, event)?
+4. What baseline would embarrass a weak model?
+5. What failure modes matter more than average error?
+
+That template is the real “skill” the book aims to build.
