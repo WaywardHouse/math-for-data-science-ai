@@ -1,6 +1,13 @@
 ---
 title: "Linear Algebra for Representations"
 status: "draft"
+id: "dsai/representations"
+concepts:
+  - data-matrices
+  - projection
+  - pca
+  - svd
+  - embeddings
 ---
 
 Linear algebra becomes newly vivid in data science because it gives us a language

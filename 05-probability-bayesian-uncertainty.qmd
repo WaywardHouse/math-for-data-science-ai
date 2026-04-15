@@ -1,6 +1,14 @@
 ---
 title: "Probability, Bayesian Models, and Uncertainty"
 status: "draft"
+id: "dsai/uncertainty"
+concepts:
+  - conditional-probability
+  - bayesian-updating
+  - calibration
+  - predictive-intervals
+prereq_concepts:
+  - evaluation-splits
 ---
 
 Probability enters machine learning not as decoration, but as the language we use

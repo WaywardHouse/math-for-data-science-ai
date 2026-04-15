@@ -1,0 +1,88 @@
+concepts:
+  modelling-brief:
+    label: "Modelling brief"
+  features-targets:
+    label: "Features and targets"
+  loss-functions:
+    label: "Loss functions"
+  evaluation-splits:
+    label: "Evaluation splits"
+
+  generalisation:
+    label: "Generalisation"
+  train-test-split:
+    label: "Train/test split"
+  cross-validation:
+    label: "Cross-validation"
+  overfitting:
+    label: "Overfitting"
+  baselines:
+    label: "Baselines"
+
+  objective-functions:
+    label: "Objective functions"
+  gradient-descent:
+    label: "Gradient descent"
+  learning-rate:
+    label: "Learning rate"
+  stochastic-gradients:
+    label: "Stochastic gradients"
+  regularisation:
+    label: "Regularisation"
+
+  data-matrices:
+    label: "Data matrices"
+  projection:
+    label: "Projection"
+  pca:
+    label: "PCA"
+  svd:
+    label: "SVD"
+  embeddings:
+    label: "Embeddings"
+
+  conditional-probability:
+    label: "Conditional probability"
+  bayesian-updating:
+    label: "Bayesian updating"
+  calibration:
+    label: "Calibration"
+  predictive-intervals:
+    label: "Predictive intervals"
+
+  time-series:
+    label: "Time series"
+  filtering:
+    label: "Filtering"
+  convolution:
+    label: "Convolution"
+  state-space:
+    label: "State-space models"
+  kalman-filter:
+    label: "Kalman filter"
+
+  entropy:
+    label: "Entropy"
+  cross-entropy:
+    label: "Cross-entropy"
+  kl-divergence:
+    label: "KL divergence"
+  log-loss:
+    label: "Log loss"
+
+  composed-functions:
+    label: "Composed functions"
+  backpropagation:
+    label: "Backpropagation"
+  activations:
+    label: "Activation functions"
+  representation-learning:
+    label: "Representation learning"
+
+  data-card:
+    label: "Data cards"
+  event-windows:
+    label: "Event windows"
+  reliability-diagram:
+    label: "Reliability diagram"
+

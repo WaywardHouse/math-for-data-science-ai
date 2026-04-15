@@ -1,6 +1,16 @@
 ---
 title: "Optimisation for Machine Learning"
 status: "draft"
+id: "dsai/optimisation"
+concepts:
+  - objective-functions
+  - gradient-descent
+  - learning-rate
+  - stochastic-gradients
+  - regularisation
+prereq_concepts:
+  - loss-functions
+  - train-test-split
 ---
 
 Once a modelling problem has been stated and a loss has been chosen, a new

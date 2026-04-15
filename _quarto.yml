@@ -3,6 +3,8 @@ project:
   output-dir: _site
   resources:
     - assets/
+  pre-render:
+    - python3 scripts/build_graph.py
 
 book:
   title: "Mathematics for Data Science and AI"
@@ -44,6 +46,7 @@ book:
         - 10-mini-projects-and-pathways.qmd
         - 11-further-enquiry-playbook.qmd
         - 12-fire-and-smoke-lab.qmd
+        - 13-knowledge-graph-demo.qmd
         - 09-exercise-answers.qmd
 
 bibliography: references.bib

@@ -1,6 +1,12 @@
 ---
 title: "Mathematical Modelling for Data and Systems"
 status: "draft"
+id: "dsai/modelling"
+concepts:
+  - modelling-brief
+  - features-targets
+  - loss-functions
+  - evaluation-splits
 ---
 
 This book begins with a simple claim: machine learning is not a separate species

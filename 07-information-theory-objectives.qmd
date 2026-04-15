@@ -1,6 +1,15 @@
 ---
 title: "Information Theory and Learning Objectives"
 status: "draft"
+id: "dsai/information-objectives"
+concepts:
+  - entropy
+  - cross-entropy
+  - kl-divergence
+  - log-loss
+prereq_concepts:
+  - conditional-probability
+  - loss-functions
 ---
 
 Probability gives us a language for uncertainty. Information theory sharpens that

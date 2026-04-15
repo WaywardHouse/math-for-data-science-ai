@@ -1,6 +1,16 @@
 ---
 title: "Neural Networks and Deep Learning Mathematics"
 status: "draft"
+id: "dsai/deep-learning"
+concepts:
+  - composed-functions
+  - backpropagation
+  - activations
+  - representation-learning
+prereq_concepts:
+  - gradient-descent
+  - embeddings
+  - cross-entropy
 ---
 
 Deep learning is often introduced as a catalogue of architectures. That makes the

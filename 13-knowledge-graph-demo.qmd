@@ -1,0 +1,50 @@
+---
+title: "Knowledge Graph Demo"
+status: "draft"
+---
+
+The goal of this demo is to show a wayfinding approach that does **not** depend
+on hardwired URLs inside prose.
+
+Instead, pages declare a small amount of structured metadata:
+
+- a stable `id` (page identity)
+- `concepts` (what this page teaches/uses)
+- `prereq_concepts` (what this page assumes)
+
+A build script then generates a small knowledge graph (nodes + edges) and a
+resolver (page id → output href). Those artefacts can be used for:
+
+- computed “Related” panels
+- back-links (“where else is this concept used?”)
+- a site-wide concept index
+- graph views
+
+## Graph preview
+
+```{python}
+#| echo: false
+
+from pathlib import Path
+
+root = Path(".")
+mmd = (root / "assets" / "graph" / "graph.mmd").read_text(encoding="utf-8")
+print("```mermaid")
+print(mmd.rstrip())
+print("```")
+```
+
+## Generated artefacts
+
+- `assets/graph/graph.json` (nodes + edges)
+- `assets/graph/resolve.json` (page id → href)
+- `assets/graph/graph.mmd` (Mermaid view of a small slice)
+
+## Next step (if you like it)
+
+1. Add `id`, `concepts`, and `prereq_concepts` front matter to more pages (books
+   and main site).
+2. Expand `graph/concepts.yml` to include synonyms and short descriptions.
+3. Add a Quarto include that renders a “Connections” panel on each page from the
+   graph, rather than hand-linking prerequisites in prose.
+

@@ -1,6 +1,15 @@
 ---
 title: "Fire and Smoke Lab (Alberta-first)"
 status: "draft"
+id: "labs/fire-and-smoke"
+concepts:
+  - data-card
+  - event-windows
+  - reliability-diagram
+  - calibration
+prereq_concepts:
+  - train-test-split
+  - log-loss
 ---
 
 This lab chapter turns the book’s running thread into a repeatable workflow:

@@ -1,6 +1,16 @@
 ---
 title: "Statistical Learning"
 status: "draft"
+id: "dsai/statistical-learning"
+concepts:
+  - generalisation
+  - train-test-split
+  - cross-validation
+  - overfitting
+  - baselines
+prereq_concepts:
+  - modelling-brief
+  - loss-functions
 ---
 
 Statistical learning begins where descriptive data analysis and statistical

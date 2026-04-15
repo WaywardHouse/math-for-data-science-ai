@@ -1,6 +1,16 @@
 ---
 title: "Signals, Sequences, and State Estimation"
 status: "draft"
+id: "dsai/sequences-state"
+concepts:
+  - time-series
+  - filtering
+  - convolution
+  - state-space
+  - kalman-filter
+prereq_concepts:
+  - objective-functions
+  - conditional-probability
 ---
 
 Much of the world does not arrive as isolated cases. It arrives in time.
