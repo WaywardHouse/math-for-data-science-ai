@@ -1,0 +1,479 @@
+---
+title: "Fire and Smoke Lab (Alberta-first)"
+status: "draft"
+id: "labs/fire-and-smoke"
+concepts:
+  - data-card
+  - event-windows
+  - reliability-diagram
+  - calibration
+prereq_concepts:
+  - train-test-split
+  - log-loss
+---
+
+This lab chapter turns the book’s running thread into a repeatable workflow:
+
+- find station metadata (where are the monitors?)
+- pull a long-running PM2.5 time series
+- define “smoke episodes” as event windows
+- produce a small set of visuals that you can reuse in later modelling
+
+The point is not to build the final “best” model. The point is to create a
+*disciplined dataset and evaluation story* that the mathematics in Chapters 1–8
+can attach to.
+
+## Data access (OpenAQ)
+
+OpenAQ is a convenient aggregator for public air-quality monitoring data, but it
+requires a free API key. Set it as an environment variable:
+
+`OPENAQ_API_KEY=...`
+
+If the key is missing, this chapter will still render using a small synthetic
+demo dataset so the figures exist and the workflow is legible.
+
+## Station map (context first)
+
+```{python}
+#| echo: false
+#| label: fig-smoke-stations
+#| fig-cap: "A small set of PM2.5 monitoring locations pulled from OpenAQ inside the Alberta boundary (or a synthetic fallback if no API key is set). A station map is the first piece of honest context: it reveals what is measured and what is not."
+
+import os
+import datetime as dt
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import requests
+
+
+BASE_URL = "https://api.openaq.org/v3"
+PM25_PARAMETER_ID = 2
+
+
+def _openaq_headers() -> dict:
+    api_key = os.environ.get("OPENAQ_API_KEY", "").strip()
+    if not api_key:
+        return {}
+    return {"X-API-Key": api_key}
+
+
+def openaq_get(path: str, params: dict | None = None) -> dict:
+    headers = _openaq_headers()
+    if not headers:
+        raise RuntimeError("Missing OPENAQ_API_KEY")
+    url = f"{BASE_URL}{path}"
+    resp = requests.get(url, headers=headers, params=params, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def alberta_bbox() -> str:
+    # Min lon, min lat, max lon, max lat (WGS84).
+    # Broad enough to catch most Alberta monitors without being too fussy.
+    return "-120.0,49.0,-110.0,60.0"
+
+
+def fetch_locations_alberta(limit_per_page: int = 100, pages: int = 3) -> pd.DataFrame:
+    rows: list[dict] = []
+    for page in range(1, pages + 1):
+        payload = openaq_get(
+            "/locations",
+            params={
+                "iso": "CA",
+                "bbox": alberta_bbox(),
+                "parameters_id": str(PM25_PARAMETER_ID),
+                "limit": limit_per_page,
+                "page": page,
+            },
+        )
+        for loc in payload.get("results", []):
+            coords = loc.get("coordinates") or {}
+            rows.append(
+                {
+                    "location_id": loc.get("id"),
+                    "name": loc.get("name"),
+                    "locality": loc.get("locality"),
+                    "provider": (loc.get("provider") or {}).get("name"),
+                    "latitude": coords.get("latitude"),
+                    "longitude": coords.get("longitude"),
+                    "datetime_first_local": ((loc.get("datetimeFirst") or {}).get("local")),
+                    "datetime_last_local": ((loc.get("datetimeLast") or {}).get("local")),
+                }
+            )
+    df = pd.DataFrame(rows).dropna(subset=["latitude", "longitude", "location_id"])
+    df = df.drop_duplicates(subset=["location_id"]).reset_index(drop=True)
+    return df
+
+
+def synthetic_locations() -> pd.DataFrame:
+    # Fallback set: approximate coordinates for a few Alberta cities.
+    return pd.DataFrame(
+        [
+            {"location_id": -1, "name": "Calgary (demo)", "locality": "Calgary", "provider": "demo", "latitude": 51.0447, "longitude": -114.0719},
+            {"location_id": -2, "name": "Edmonton (demo)", "locality": "Edmonton", "provider": "demo", "latitude": 53.5461, "longitude": -113.4938},
+            {"location_id": -3, "name": "Red Deer (demo)", "locality": "Red Deer", "provider": "demo", "latitude": 52.2681, "longitude": -113.8112},
+            {"location_id": -4, "name": "Lethbridge (demo)", "locality": "Lethbridge", "provider": "demo", "latitude": 49.6935, "longitude": -112.8418},
+            {"location_id": -5, "name": "Fort McMurray (demo)", "locality": "Fort McMurray", "provider": "demo", "latitude": 56.7264, "longitude": -111.3790},
+        ]
+    )
+
+
+try:
+    locations = fetch_locations_alberta()
+    source_note = "OpenAQ"
+except Exception:
+    locations = synthetic_locations()
+    source_note = "synthetic fallback (set OPENAQ_API_KEY for real data)"
+
+# Pick a small set for plotting.
+locations_plot = locations.copy()
+locations_plot["label"] = locations_plot["locality"].fillna(locations_plot["name"]).astype(str)
+locations_plot = locations_plot.sort_values(["label"]).head(20)
+
+fig, ax = plt.subplots(figsize=(8, 5))
+
+# Alberta boundary (simple but geographically correct to first order: 49–60N, 110–120W).
+ab_lon = [-120.0, -110.0, -110.0, -120.0, -120.0]
+ab_lat = [49.0, 49.0, 60.0, 60.0, 49.0]
+ax.plot(ab_lon, ab_lat, color="#333333", lw=1.6, label="Alberta boundary")
+
+ax.scatter(locations_plot["longitude"], locations_plot["latitude"], s=28, color="#c44e4e", alpha=0.85)
+for _, r in locations_plot.iterrows():
+    ax.text(r["longitude"] + 0.08, r["latitude"] + 0.08, str(r["label"])[:18], fontsize=7, color="#333333")
+
+ax.set_title(f"Alberta-first PM2.5 stations ({source_note})", fontsize=11)
+ax.set_xlabel("Longitude")
+ax.set_ylabel("Latitude")
+ax.set_xlim(-121.5, -108.5)
+ax.set_ylim(48.0, 61.0)
+ax.grid(True, alpha=0.25)
+
+fig.tight_layout()
+```
+
+## Pull a daily PM2.5 time series
+
+For a first pass, daily aggregates are enough to reveal seasonality and smoke
+episodes without drowning in detail.
+
+```{python}
+#| echo: false
+#| label: fig-smoke-timeseries
+#| fig-cap: "Daily PM2.5 for a chosen Alberta station, with smoke episodes detected as runs above a threshold (default 25 µg/m³). The goal is not the perfect threshold; the goal is to make the event structure explicit so evaluation can be honest."
+
+SMOKE_THRESHOLD = 25.0  # µg/m³ (adjust for your policy/health framing)
+WINDOW_DAYS = 365
+
+
+def pick_location(locations_df: pd.DataFrame) -> pd.Series:
+    # Prefer Calgary or Edmonton if present; otherwise pick the first row.
+    for target in ["Calgary", "Edmonton"]:
+        hit = locations_df[locations_df["locality"].fillna("").str.contains(target, case=False)]
+        if len(hit) > 0:
+            return hit.iloc[0]
+    return locations_df.iloc[0]
+
+
+def fetch_pm25_sensor_id(location_id: int) -> int:
+    payload = openaq_get(f"/locations/{location_id}/sensors")
+    sensors = payload.get("results", [])
+    for s in sensors:
+        p = s.get("parameter") or {}
+        if p.get("id") == PM25_PARAMETER_ID or p.get("name") == "pm25":
+            return int(s["id"])
+    raise RuntimeError("No PM2.5 sensor found for this location.")
+
+
+def fetch_daily_pm25(sensor_id: int, days: int = WINDOW_DAYS) -> pd.DataFrame:
+    date_to = dt.datetime.now(dt.timezone.utc)
+    date_from = date_to - dt.timedelta(days=days)
+    payload = openaq_get(
+        f"/sensors/{sensor_id}/days",
+        params={
+            "date_from": date_from.isoformat(),
+            "date_to": date_to.isoformat(),
+            "limit": 1000,
+            "page": 1,
+        },
+    )
+    rows = []
+    for r in payload.get("results", []):
+        dfrom = (r.get("datetimeFrom") or {}).get("local") or (r.get("datetimeFrom") or {}).get("utc")
+        val = r.get("value")
+        cov = r.get("coverage") or {}
+        rows.append(
+            {
+                "date": pd.to_datetime(dfrom).date() if dfrom else None,
+                "pm25": val,
+                "percent_complete": cov.get("percentComplete"),
+            }
+        )
+    df = pd.DataFrame(rows).dropna(subset=["date"])
+    df = df.sort_values("date").reset_index(drop=True)
+    df["date"] = pd.to_datetime(df["date"])
+    return df
+
+
+def synthetic_pm25_series(days: int = WINDOW_DAYS) -> pd.DataFrame:
+    rng = np.random.default_rng(2)
+    dates = pd.date_range(end=pd.Timestamp.today().normalize(), periods=days, freq="D")
+    day_of_year = dates.dayofyear.to_numpy()
+    baseline = 6 + 3 * np.sin(2 * np.pi * (day_of_year / 365.25))
+    noise = rng.normal(0, 2.0, size=len(dates))
+    pm25 = np.clip(baseline + noise, 0, None)
+
+    # Add a couple of smoke episodes.
+    for start, length, peak in [(120, 10, 65), (250, 14, 45)]:
+        idx = np.arange(start, min(start + length, len(dates)))
+        pm25[idx] += peak * np.exp(-0.2 * (idx - start))
+
+    return pd.DataFrame({"date": dates, "pm25": pm25, "percent_complete": 100.0})
+
+
+loc = pick_location(locations)
+station_name = str(loc.get("name") or loc.get("locality") or "Station")
+
+try:
+    if int(loc["location_id"]) < 0:
+        series = synthetic_pm25_series()
+        series_source = "synthetic fallback"
+    else:
+        sensor_id = fetch_pm25_sensor_id(int(loc["location_id"]))
+        series = fetch_daily_pm25(sensor_id)
+        series_source = "OpenAQ daily aggregates"
+except Exception:
+    series = synthetic_pm25_series()
+    series_source = "synthetic fallback"
+
+series = series.dropna(subset=["pm25"]).copy()
+series["is_smoke"] = series["pm25"] >= SMOKE_THRESHOLD
+
+# Detect runs above threshold.
+series["episode_id"] = (series["is_smoke"] & ~series["is_smoke"].shift(1).fillna(False)).cumsum()
+episodes = (
+    series[series["is_smoke"]]
+    .groupby("episode_id", as_index=False)
+    .agg(start=("date", "min"), end=("date", "max"), peak=("pm25", "max"), days=("date", "count"))
+)
+
+fig, ax = plt.subplots(figsize=(9, 4))
+ax.plot(series["date"], series["pm25"], color="#4e8ac4", lw=1.4, label="PM2.5 (daily)")
+ax.axhline(SMOKE_THRESHOLD, color="#c44e4e", lw=1.2, ls="--", label=f"Smoke threshold ({SMOKE_THRESHOLD:g})")
+
+for _, e in episodes.iterrows():
+    ax.axvspan(e["start"], e["end"] + pd.Timedelta(days=1), color="#c44e4e", alpha=0.12)
+
+ax.set_title(f"{station_name} — daily PM2.5 ({series_source})", fontsize=11)
+ax.set_xlabel("Date")
+ax.set_ylabel("PM2.5 (µg/m³)")
+ax.grid(True, alpha=0.25)
+ax.legend(fontsize=9, loc="upper right")
+fig.tight_layout()
+```
+
+## A reusable “data card”
+
+Use this as the book’s shared context when you write about the smoke project.
+It forces you to say what you used, what you excluded, and what is unknown.
+
+```{python}
+#| echo: false
+
+start = series["date"].min().date()
+end = series["date"].max().date()
+missing = int(series["pm25"].isna().sum())
+above = int((series["pm25"] >= SMOKE_THRESHOLD).sum())
+total = int(len(series))
+
+display_df = episodes.sort_values(["peak"], ascending=False).head(5).copy()
+display_df["start"] = display_df["start"].dt.date
+display_df["end"] = display_df["end"].dt.date
+
+card = f"""
+::: {{.callout-note}}
+## Smoke data card (draft)
+
+- Station: **{station_name}**
+- Window: **{start} → {end}** ({total} days)
+- Missing PM2.5 values: **{missing}**
+- Threshold: **{SMOKE_THRESHOLD:g} µg/m³**
+- Days above threshold: **{above}** ({above/total:.1%})
+
+Top detected episodes (by peak):
+
+{display_df.to_markdown(index=False)}
+:::
+"""
+print(card)
+```
+
+## Episode summaries (a first “event lens”)
+
+Event-structure visuals make the later evaluation story easier to tell. A first
+step is to summarise how many smoke days occur in each month, and how peaks
+cluster.
+
+```{python}
+#| echo: false
+#| label: fig-smoke-episode-summary
+#| fig-cap: "Two quick event summaries: smoke days per month (threshold-based), and a histogram of episode durations. These reveal seasonality and whether events are mostly brief spikes or multi-day episodes."
+
+tmp = series.copy()
+tmp["month"] = tmp["date"].dt.to_period("M").dt.to_timestamp()
+
+smoke_days_per_month = (
+    tmp.assign(is_smoke=tmp["pm25"] >= SMOKE_THRESHOLD)
+    .groupby("month", as_index=False)
+    .agg(smoke_days=("is_smoke", "sum"), mean_pm25=("pm25", "mean"), peak_pm25=("pm25", "max"))
+)
+
+durations = episodes["days"].to_numpy() if len(episodes) else np.array([0])
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+ax = axes[0]
+ax.bar(smoke_days_per_month["month"], smoke_days_per_month["smoke_days"], width=20, color="#c44e4e", alpha=0.75)
+ax.set_title("Smoke days per month", fontsize=10)
+ax.set_ylabel("Days ≥ threshold")
+ax.grid(True, axis="y", alpha=0.25)
+
+ax2 = axes[1]
+bins = np.arange(0.5, max(3.5, durations.max() + 1.5), 1.0)
+ax2.hist(durations[durations > 0], bins=bins, color="#4e8ac4", alpha=0.8, edgecolor="white")
+ax2.set_title("Episode durations", fontsize=10)
+ax2.set_xlabel("Days in episode")
+ax2.set_ylabel("Count")
+ax2.grid(True, axis="y", alpha=0.25)
+
+fig.tight_layout()
+```
+
+## Smoke-alert calibration (a decision-facing visual)
+
+A smoke alert is a *decision*, not a number. If you publish probabilities for a
+next-day smoke event, they need to be calibrated: days predicted at 30% should
+be smoke days about 30% of the time.
+
+This plot is a minimal baseline: a simple logistic model predicts next-day
+smoke-day probability from yesterday’s PM2.5 and seasonality terms. The point is
+not the model. The point is the **evaluation discipline**.
+
+```{python}
+#| echo: false
+#| label: fig-smoke-calibration
+#| fig-cap: "Reliability diagram for a baseline next-day smoke alert model. A calibrated model follows the diagonal. This is the decision-facing complement to average error: it asks whether stated probabilities match observed frequencies."
+
+from scipy import optimize
+
+
+def make_next_day_dataset(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.sort_values("date").copy()
+    out["pm25_lag1"] = out["pm25"].shift(1)
+    doy = out["date"].dt.dayofyear.to_numpy()
+    out["sin_doy"] = np.sin(2 * np.pi * doy / 365.25)
+    out["cos_doy"] = np.cos(2 * np.pi * doy / 365.25)
+    out["smoke_next"] = (out["pm25"].shift(-1) >= SMOKE_THRESHOLD).astype(float)
+    out = out.dropna(subset=["pm25_lag1", "smoke_next"]).reset_index(drop=True)
+    return out
+
+
+def sigmoid(z: np.ndarray) -> np.ndarray:
+    return 1.0 / (1.0 + np.exp(-z))
+
+
+def fit_logistic_regression(X: np.ndarray, y: np.ndarray, l2: float = 1e-3) -> np.ndarray:
+    # Minimise negative log-likelihood with small L2 for numerical stability.
+    def nll(w: np.ndarray) -> float:
+        z = X @ w
+        p = sigmoid(z)
+        eps = 1e-9
+        return -np.sum(y * np.log(p + eps) + (1 - y) * np.log(1 - p + eps)) + l2 * np.sum(w * w)
+
+    w0 = np.zeros(X.shape[1])
+    res = optimize.minimize(nll, w0, method="BFGS")
+    return res.x
+
+
+data = make_next_day_dataset(series)
+
+if len(data) < 120 or data["smoke_next"].sum() < 5:
+    # Too little data to say anything honest; fall back to a synthetic reliability example.
+    rng = np.random.default_rng(0)
+    p_hat = rng.uniform(0, 1, size=400)
+    y_hat = (rng.uniform(0, 1, size=400) < (0.6 * p_hat + 0.2)).astype(float)
+    title_note = "synthetic reliability demo (insufficient real data)"
+else:
+    # Time split: early data for training, later data for testing.
+    split = int(0.7 * len(data))
+    train = data.iloc[:split]
+    test = data.iloc[split:]
+
+    X_tr = np.column_stack(
+        [
+            np.ones(len(train)),
+            np.log1p(train["pm25_lag1"].to_numpy()),
+            train["sin_doy"].to_numpy(),
+            train["cos_doy"].to_numpy(),
+        ]
+    )
+    y_tr = train["smoke_next"].to_numpy()
+
+    X_te = np.column_stack(
+        [
+            np.ones(len(test)),
+            np.log1p(test["pm25_lag1"].to_numpy()),
+            test["sin_doy"].to_numpy(),
+            test["cos_doy"].to_numpy(),
+        ]
+    )
+    y_te = test["smoke_next"].to_numpy()
+
+    w = fit_logistic_regression(X_tr, y_tr)
+    p_hat = sigmoid(X_te @ w)
+    y_hat = y_te
+    title_note = "baseline logistic model (time-split)"
+
+# Reliability curve (equal-width bins on predicted probability).
+bins = np.linspace(0, 1, 11)
+bin_ids = np.digitize(p_hat, bins) - 1
+bin_centers = 0.5 * (bins[:-1] + bins[1:])
+
+obs = []
+pred = []
+counts = []
+for b in range(len(bin_centers)):
+    mask = bin_ids == b
+    if mask.sum() == 0:
+        continue
+    obs.append(float(y_hat[mask].mean()))
+    pred.append(float(p_hat[mask].mean()))
+    counts.append(int(mask.sum()))
+
+fig, ax = plt.subplots(figsize=(6, 5))
+ax.plot([0, 1], [0, 1], color="#999999", lw=1.2, ls="--", label="Perfect calibration")
+
+ax.scatter(pred, obs, s=np.clip(np.array(counts) * 1.2, 30, 240), color="#4e8ac4", alpha=0.85, edgecolor="white")
+ax.plot(pred, obs, color="#4e8ac4", lw=1.2, alpha=0.8)
+
+ax.set_title(f"Next-day smoke alert calibration ({title_note})", fontsize=10)
+ax.set_xlabel("Mean predicted probability (bin)")
+ax.set_ylabel("Observed smoke-day frequency")
+ax.set_xlim(0, 1)
+ax.set_ylim(0, 1)
+ax.grid(True, alpha=0.25)
+ax.legend(fontsize=8, loc="upper left")
+fig.tight_layout()
+```
+
+## Where to take this next
+
+- Add weather covariates and plot “PM2.5 conditional on wind direction” to see
+  transport patterns.
+- Add a fire-activity proxy and test whether it helps predict episodes without
+  simply overfitting a particular year.
+- Move from station-only to population-weighted exposure once your station
+  evaluation story is honest.

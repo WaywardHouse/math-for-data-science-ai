@@ -1,0 +1,91 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Knowledge Graph Demo\"\n",
+        "status: \"draft\"\n",
+        "---\n",
+        "\n",
+        "The goal of this demo is to show a wayfinding approach that does **not** depend\n",
+        "on hardwired URLs inside prose.\n",
+        "\n",
+        "Instead, pages declare a small amount of structured metadata:\n",
+        "\n",
+        "- a stable `id` (page identity)\n",
+        "- `concepts` (what this page teaches/uses)\n",
+        "- `prereq_concepts` (what this page assumes)\n",
+        "\n",
+        "A build script then generates a small knowledge graph (nodes + edges) and a\n",
+        "resolver (page id → output href). Those artefacts can be used for:\n",
+        "\n",
+        "- computed “Related” panels\n",
+        "- back-links (“where else is this concept used?”)\n",
+        "- a site-wide concept index\n",
+        "- graph views\n",
+        "\n",
+        "## Graph preview\n",
+        "\n",
+        "::: {style=\"display: none;\" aria-hidden=\"true\"}\n",
+        "```{mermaid}\n",
+        "graph LR\n",
+        "  mermaid_runtime_trigger[\"Mermaid runtime trigger\"]\n",
+        "```\n",
+        ":::"
+      ],
+      "id": "07427068"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| echo: false\n",
+        "#| output: asis\n",
+        "\n",
+        "import html\n",
+        "from pathlib import Path\n",
+        "\n",
+        "root = Path(\".\")\n",
+        "mmd = (root / \"assets\" / \"graph\" / \"graph.mmd\").read_text(encoding=\"utf-8\")\n",
+        "print('<pre class=\"mermaid-js\"><code>')\n",
+        "print(html.escape(mmd.rstrip()))\n",
+        "print('</code></pre>')"
+      ],
+      "id": "938cc10d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Generated artefacts\n",
+        "\n",
+        "- `assets/graph/graph.json` (nodes + edges)\n",
+        "- `assets/graph/resolve.json` (page id → href)\n",
+        "- `assets/graph/graph.mmd` (Mermaid view of a small slice)\n",
+        "\n",
+        "## Next step (if you like it)\n",
+        "\n",
+        "1. Add `id`, `concepts`, and `prereq_concepts` front matter to more pages (books\n",
+        "   and main site).\n",
+        "2. Expand `graph/concepts.yml` to include synonyms and short descriptions.\n",
+        "3. Add a Quarto include that renders a “Connections” panel on each page from the\n",
+        "   graph, rather than hand-linking prerequisites in prose."
+      ],
+      "id": "13cac7ac"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/Users/pauldhobson/Library/Python/3.14/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
